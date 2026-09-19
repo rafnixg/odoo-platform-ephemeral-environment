@@ -131,6 +131,15 @@ def doctor() -> None:
     checks.append(("builds-root", parent.exists() and parent.is_dir(), str(root)))
     git_path = shutil.which("git")
     checks.append(("git-executable", git_path is not None, git_path or "not found"))
+    for alias, repository in settings.repositories.items():
+        repository_path = Path(repository.url).expanduser().resolve()
+        exists = repository_path.is_dir()
+        checks.append((f"repository-{alias}", exists, str(repository_path)))
+        if exists:
+            ok, detail = _command_version(
+                ["git", "-C", str(repository_path), "rev-parse", "--is-inside-work-tree"]
+            )
+            checks.append((f"repository-{alias}-git", ok and detail == "true", detail))
     for name, ok, detail in checks:
         typer.echo(f"[{'OK' if ok else 'FAIL'}] {name}: {detail}")
     if not all(ok for _, ok, _ in checks):
@@ -150,6 +159,22 @@ def cleanup(
             {
                 "examined": result.examined,
                 "destroyed_ids": result.destroyed_ids,
+                "failed_ids": result.failed_ids,
+            },
+            indent=2,
+        )
+    )
+
+
+@app.command("recover")
+def recover() -> None:
+    """Classify interrupted builds after a confirmed orchestrator restart."""
+    result = create_manager(docker=True).recover_interrupted()
+    typer.echo(
+        json.dumps(
+            {
+                "examined": result.examined,
+                "recovered_ids": result.destroyed_ids,
                 "failed_ids": result.failed_ids,
             },
             indent=2,

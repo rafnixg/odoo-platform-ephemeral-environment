@@ -41,6 +41,7 @@ mini-runbot build get BUILD_ID
 mini-runbot build logs BUILD_ID --stage test
 mini-runbot build destroy BUILD_ID
 mini-runbot cleanup --expired
+mini-runbot recover
 mini-runbot doctor
 ```
 
