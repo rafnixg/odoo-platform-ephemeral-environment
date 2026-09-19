@@ -3,12 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from sqlalchemy import JSON, DateTime, Integer, String, create_engine, select, update
+from sqlalchemy import JSON, DateTime, Integer, String, create_engine, inspect, select, text, update
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
-from mini_runbot.domain.enums import BuildStatus
+from mini_runbot.domain.enums import BuildStatus, StageStatus
 from mini_runbot.domain.errors import ConcurrentUpdateError
-from mini_runbot.domain.models import Build, RepositoryRevision
+from mini_runbot.domain.models import Build, RepositoryRevision, StageResult
 
 
 class Base(DeclarativeBase):
@@ -34,6 +34,7 @@ class BuildRow(Base):
     preview_url: Mapped[str | None] = mapped_column(String(2048))
     failure_stage: Mapped[str | None] = mapped_column(String(64))
     failure_message: Mapped[str | None] = mapped_column(String(1000))
+    stages: Mapped[list[dict[str, object]]] = mapped_column(JSON, nullable=False, default=list)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
 
@@ -45,6 +46,12 @@ class SqliteBuildRepository:
 
     def create_schema(self) -> None:
         Base.metadata.create_all(self.engine)
+        columns = {item["name"] for item in inspect(self.engine).get_columns("builds")}
+        if "stages" not in columns:
+            with self.engine.begin() as connection:
+                connection.execute(
+                    text("ALTER TABLE builds ADD COLUMN stages JSON NOT NULL DEFAULT '[]'")
+                )
 
     def add(self, build: Build) -> None:
         with self.sessions.begin() as session:
@@ -102,6 +109,21 @@ class SqliteBuildRepository:
             "preview_url": build.preview_url,
             "failure_stage": build.failure_stage,
             "failure_message": build.failure_message,
+            "stages": [self._stage_dict(stage) for stage in build.stages],
+        }
+
+    @staticmethod
+    def _stage_dict(stage: StageResult) -> dict[str, object]:
+        return {
+            "name": stage.name,
+            "status": stage.status.value,
+            "started_at": stage.started_at.isoformat() if stage.started_at else None,
+            "finished_at": stage.finished_at.isoformat() if stage.finished_at else None,
+            "duration_seconds": stage.duration_seconds,
+            "exit_code": stage.exit_code,
+            "log_path": stage.log_path,
+            "summary": stage.summary,
+            "metadata": stage.metadata,
         }
 
     def _to_row(self, build: Build) -> BuildRow:
@@ -126,5 +148,27 @@ class SqliteBuildRepository:
             preview_url=row.preview_url,
             failure_stage=row.failure_stage,
             failure_message=row.failure_message,
+            stages=[
+                StageResult(
+                    name=item["name"],
+                    status=StageStatus(item["status"]),
+                    started_at=(
+                        datetime.fromisoformat(item["started_at"])
+                        if item.get("started_at")
+                        else None
+                    ),
+                    finished_at=(
+                        datetime.fromisoformat(item["finished_at"])
+                        if item.get("finished_at")
+                        else None
+                    ),
+                    duration_seconds=item.get("duration_seconds"),
+                    exit_code=item.get("exit_code"),
+                    log_path=item.get("log_path"),
+                    summary=item.get("summary"),
+                    metadata=item.get("metadata", {}),
+                )
+                for item in row.stages
+            ],
             version=row.version,
         )

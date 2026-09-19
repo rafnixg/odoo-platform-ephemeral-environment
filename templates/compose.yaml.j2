@@ -1,0 +1,47 @@
+name: {{ compose_project_name }}
+services:
+  db:
+    image: {{ postgres_image | tojson }}
+    environment:
+      POSTGRES_DB: {{ database_name | tojson }}
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d {{ database_name }}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [build]
+  odoo:
+    image: {{ odoo_image | tojson }}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: db
+      PORT: "5432"
+      USER: odoo
+      PASSWORD: odoo
+    ports:
+      - "127.0.0.1:{{ host_port }}:8069"
+    command: ["odoo", "-d", {{ database_name | tojson }}, "--database_host=db", "--database_port=5432", "--database_user=odoo", "--database_password=odoo", "--addons-path={{ addons_path }}"]
+    volumes:
+{% for repo in repositories %}
+      - {{ (repo.checkout_path ~ ':/mnt/addons/' ~ repo.name ~ ':ro') | tojson }}
+{% endfor %}
+    networks: [build]
+    restart: unless-stopped
+    mem_limit: 2g
+    cpus: 2.0
+    pids_limit: 512
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+networks:
+  build: {}
+volumes:
+  pgdata: {}

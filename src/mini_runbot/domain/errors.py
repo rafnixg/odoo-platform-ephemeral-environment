@@ -17,3 +17,20 @@ class ConcurrentUpdateError(MiniRunbotError):
 class UnsafePathError(MiniRunbotError):
     pass
 
+
+class ConfigurationError(MiniRunbotError):
+    pass
+
+
+class GitOperationError(MiniRunbotError):
+    pass
+
+
+class RuntimeOperationError(MiniRunbotError):
+    pass
+
+
+class BuildExecutionError(MiniRunbotError):
+    def __init__(self, stage: str, message: str) -> None:
+        super().__init__(message)
+        self.stage = stage

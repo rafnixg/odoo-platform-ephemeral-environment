@@ -56,4 +56,3 @@ class Build:
     def transition_to(self, target: BuildStatus) -> None:
         validate_transition(self.status, target)
         self.status = target
-
