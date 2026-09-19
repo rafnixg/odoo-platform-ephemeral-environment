@@ -1,0 +1,11 @@
+# Reserved for Phase 1 repository allowlist and Odoo runtime settings.
+database_url: sqlite:///./mini_runbot.db
+builds_root: ./builds
+default_ttl_seconds: 14400
+repositories:
+  custom:
+    url: C:/path/to/allowed/custom-addons
+    default_ref: "16.0"
+    target: custom-addons
+    allow_request_ref: true
+
