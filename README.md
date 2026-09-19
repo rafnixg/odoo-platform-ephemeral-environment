@@ -37,6 +37,7 @@ set `addons_subpath` when its Odoo modules are below the repository root.
 ```powershell
 mini-runbot build create --repo custom --ref feature/x --modules module_a,module_b --run
 mini-runbot build list
+mini-runbot build list --status running
 mini-runbot build get BUILD_ID
 mini-runbot build logs BUILD_ID --stage test
 mini-runbot build destroy BUILD_ID
@@ -45,14 +46,21 @@ mini-runbot recover
 mini-runbot doctor
 ```
 
+CLI output uses readable tables and pipeline panels by default. Add `--json` to create, get,
+list, run, destroy, cleanup, or recover when another program consumes the output.
+
 By default, state is stored in `./mini_runbot.db` and workspaces in `./builds`. Override these
 with `MINI_RUNBOT_DATABASE_URL` and `MINI_RUNBOT_BUILDS_ROOT`.
 
 ## API
 
 ```powershell
-uvicorn mini_runbot.api.app:app --reload
+mini-runbot serve --reload
 ```
+
+Open `http://127.0.0.1:8000` for the built-in dashboard. It provides build metrics, filtering,
+creation, live polling, stage timelines, safe log viewing, preview links, and runtime destruction.
+The frontend is served by FastAPI and needs no separate Node.js build or deployment.
 
 Available operations are `POST /builds`, `GET /builds`, `GET /builds/{build_id}`,
 `GET /builds/{build_id}/logs?stage=test`, and `DELETE /builds/{build_id}`. `POST /builds`

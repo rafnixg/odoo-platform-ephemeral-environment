@@ -1,4 +1,3 @@
-import json
 import platform
 import shutil
 import subprocess
@@ -6,9 +5,12 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+import uvicorn
+from rich.console import Console
+from rich.table import Table
 
-from mini_runbot.api.schemas import BuildResponse
 from mini_runbot.bootstrap import create_manager
+from mini_runbot.cli.presentation import print_build, print_build_list, print_operation_result
 from mini_runbot.config import Settings
 from mini_runbot.domain.errors import BuildNotFoundError, MiniRunbotError
 from mini_runbot.domain.validation import CreateBuildRequest
@@ -16,11 +18,7 @@ from mini_runbot.domain.validation import CreateBuildRequest
 app = typer.Typer(help="Local Mini-Runbot proof of concept.")
 build_app = typer.Typer(help="Manage builds.")
 app.add_typer(build_app, name="build")
-
-
-def _print_build(build: object) -> None:
-    response = BuildResponse.from_domain(build)  # type: ignore[arg-type]
-    typer.echo(json.dumps(response.model_dump(mode="json"), indent=2))
+console = Console()
 
 
 @build_app.command("create")
@@ -30,6 +28,9 @@ def create_build(
     modules: Annotated[str, typer.Option("--modules")],
     ttl_seconds: Annotated[int, typer.Option("--ttl-seconds")] = 14_400,
     run: Annotated[bool, typer.Option("--run", help="Execute immediately with Docker.")] = False,
+    json_output: Annotated[
+        bool, typer.Option("--json", help="Emit machine-readable JSON.")
+    ] = False,
 ) -> None:
     request = CreateBuildRequest(
         repository=repo,
@@ -41,40 +42,55 @@ def create_build(
     build = manager.create(request)
     if run:
         build = manager.execute(build.id)
-    _print_build(build)
+    print_build(build, console, json_output=json_output)
 
 
 @build_app.command("get")
-def get_build(build_id: str) -> None:
+def get_build(
+    build_id: str,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
     try:
-        _print_build(create_manager().get(build_id))
+        print_build(create_manager().get(build_id), console, json_output=json_output)
     except BuildNotFoundError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 
 
 @build_app.command("list")
-def list_builds() -> None:
-    builds = [
-        BuildResponse.from_domain(item).model_dump(mode="json")
-        for item in create_manager().list()
-    ]
-    typer.echo(json.dumps(builds, indent=2))
+def list_builds(
+    status: Annotated[str | None, typer.Option("--status", help="Filter by build status.")] = None,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    builds = create_manager().list()
+    if status:
+        builds = [item for item in builds if item.status.value == status.lower()]
+    print_build_list(builds, console, json_output=json_output)
 
 
 @build_app.command("destroy")
-def destroy_build(build_id: str) -> None:
+def destroy_build(
+    build_id: str,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
     try:
-        _print_build(create_manager().destroy(build_id))
+        print_build(create_manager().destroy(build_id), console, json_output=json_output)
     except MiniRunbotError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 
 
 @build_app.command("run")
-def run_build(build_id: str) -> None:
+def run_build(
+    build_id: str,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
     try:
-        _print_build(create_manager(docker=True).execute(build_id))
+        print_build(
+            create_manager(docker=True).execute(build_id),
+            console,
+            json_output=json_output,
+        )
     except MiniRunbotError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
@@ -95,7 +111,7 @@ def build_logs(
         typer.echo("No matching stage logs", err=True)
         raise typer.Exit(1)
     for item in selected:
-        typer.echo(f"== {item.name} ({item.status}) ==")
+        console.rule(f"[bold]{item.name}[/bold] · {item.status.value}")
         if item.log_path and Path(item.log_path).is_file():
             typer.echo(Path(item.log_path).read_text(encoding="utf-8", errors="replace"))
         else:
@@ -140,45 +156,64 @@ def doctor() -> None:
                 ["git", "-C", str(repository_path), "rev-parse", "--is-inside-work-tree"]
             )
             checks.append((f"repository-{alias}-git", ok and detail == "true", detail))
+    table = Table(title="Mini-Runbot doctor", header_style="bold dim")
+    table.add_column("Check")
+    table.add_column("Result")
+    table.add_column("Detail", overflow="fold")
     for name, ok, detail in checks:
-        typer.echo(f"[{'OK' if ok else 'FAIL'}] {name}: {detail}")
+        table.add_row(name, "[green]OK[/green]" if ok else "[red]FAIL[/red]", detail)
+    console.print(table)
     if not all(ok for _, ok, _ in checks):
         raise typer.Exit(1)
+
+
+@app.command("serve")
+def serve(
+    host: Annotated[str, typer.Option("--host")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", min=1, max=65535)] = 8000,
+    reload: Annotated[bool, typer.Option("--reload")] = False,
+) -> None:
+    """Serve the API and dashboard from one process."""
+    console.print(f"[bold green]Mini-Runbot[/bold green] → http://{host}:{port}")
+    uvicorn.run("mini_runbot.api.app:app", host=host, port=port, reload=reload)
 
 
 @app.command("cleanup")
 def cleanup(
     expired: Annotated[bool, typer.Option("--expired", help="Destroy expired builds.")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
     if not expired:
         typer.echo("Specify --expired", err=True)
         raise typer.Exit(2)
     result = create_manager(docker=True).cleanup_expired()
-    typer.echo(
-        json.dumps(
-            {
-                "examined": result.examined,
-                "destroyed_ids": result.destroyed_ids,
-                "failed_ids": result.failed_ids,
-            },
-            indent=2,
-        )
+    print_operation_result(
+        "Expired build cleanup",
+        {
+            "examined": result.examined,
+            "destroyed_ids": result.destroyed_ids,
+            "failed_ids": result.failed_ids,
+        },
+        console,
+        json_output=json_output,
     )
 
 
 @app.command("recover")
-def recover() -> None:
+def recover(
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
     """Classify interrupted builds after a confirmed orchestrator restart."""
     result = create_manager(docker=True).recover_interrupted()
-    typer.echo(
-        json.dumps(
-            {
-                "examined": result.examined,
-                "recovered_ids": result.destroyed_ids,
-                "failed_ids": result.failed_ids,
-            },
-            indent=2,
-        )
+    print_operation_result(
+        "Interrupted build recovery",
+        {
+            "examined": result.examined,
+            "recovered_ids": result.destroyed_ids,
+            "failed_ids": result.failed_ids,
+        },
+        console,
+        json_output=json_output,
     )
 
 

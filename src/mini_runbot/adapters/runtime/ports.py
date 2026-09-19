@@ -13,10 +13,11 @@ class SocketPortAllocator:
         self._allocated: set[int] = set()
         self._lock = Lock()
 
-    def allocate(self) -> int:
+    def allocate(self, excluded: set[int] | None = None) -> int:
+        excluded = excluded or set()
         with self._lock:
             for port in range(self.start, self.end + 1):
-                if port in self._allocated:
+                if port in self._allocated or port in excluded:
                     continue
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as candidate:
                     try:

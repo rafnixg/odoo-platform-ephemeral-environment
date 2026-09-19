@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Mini-Runbot build dashboard for Odoo 16">
+    <title>Mini-Runbot</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%23c6ff4a%22/><text x=%2232%22 y=%2241%22 text-anchor=%22middle%22 font-size=%2226%22 font-family=%22Arial%22 font-weight=%22900%22 fill=%22%23111600%22>MR</text></svg>">
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Mini-Runbot home">
+          <span class="brand-mark" aria-hidden="true">MR</span>
+          <span><strong>Mini-Runbot</strong><small>Odoo 16 build control</small></span>
+        </a>
+        <div class="topbar-actions">
+          <span class="connection"><i id="connection-dot"></i><span id="connection-label">Connecting</span></span>
+          <button id="refresh-button" class="button button-ghost" type="button">Refresh</button>
+          <button id="create-button" class="button button-primary" type="button">New build</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div>
+            <p class="eyebrow">BUILD OPERATIONS</p>
+            <h1>Every revision, accounted for.</h1>
+            <p class="hero-copy">Inspect Git provenance, pipeline stages, logs, and temporary Odoo environments from one place.</p>
+          </div>
+          <div class="hero-meta"><span>LOCAL EXECUTOR</span><strong id="worker-count">— workers</strong></div>
+        </section>
+
+        <section class="metrics" aria-label="Build summary">
+          <article><span>Total builds</span><strong id="metric-total">—</strong><small>Recorded locally</small></article>
+          <article><span>In progress</span><strong id="metric-active">—</strong><small>Across pipeline stages</small></article>
+          <article><span>Running</span><strong id="metric-running">—</strong><small>Preview environments</small></article>
+          <article><span>Failed</span><strong id="metric-failed">—</strong><small>Needs attention</small></article>
+        </section>
+
+        <section class="build-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">RECENT ACTIVITY</p><h2>Builds</h2></div>
+            <div class="filters">
+              <label class="search"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Search ID, ref, or module" aria-label="Search builds"></label>
+              <select id="status-filter" aria-label="Filter builds by status">
+                <option value="">All statuses</option>
+                <option value="running">Running</option>
+                <option value="failed">Failed</option>
+                <option value="new">Queued</option>
+                <option value="destroyed">Destroyed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="build-table" role="table" aria-label="Builds">
+            <div class="build-row build-row-head" role="row">
+              <span>Build</span><span>Source</span><span>Modules</span><span>Status</span><span>Created</span><span></span>
+            </div>
+            <div id="build-list" class="build-list"></div>
+          </div>
+          <div id="empty-state" class="empty-state" hidden>
+            <span class="empty-icon">◇</span><h3>No builds found</h3><p>Create a build or adjust the current filters.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="drawer-overlay" class="drawer-overlay" hidden></div>
+    <aside id="build-drawer" class="drawer" aria-label="Build details" aria-hidden="true">
+      <div id="drawer-content"></div>
+    </aside>
+
+    <dialog id="create-dialog" class="modal">
+      <form id="create-form" method="dialog">
+        <div class="modal-heading"><div><p class="eyebrow">NEW EXECUTION</p><h2>Create build</h2></div><button class="icon-button" type="button" data-modal-close aria-label="Close">×</button></div>
+        <p class="form-intro">Resolve an allowed repository revision, install its modules, run tests, and publish a temporary preview.</p>
+        <label>Repository<select id="repository-input" name="repository" required></select></label>
+        <label>Git reference<input id="ref-input" name="ref" required maxlength="200" placeholder="feature/payment-fix"></label>
+        <label>Odoo modules<input name="modules" required placeholder="custom_sale, custom_account"><small>Comma-separated module technical names</small></label>
+        <label>Lifetime<select name="ttl_seconds"><option value="3600">1 hour</option><option value="14400" selected>4 hours</option><option value="28800">8 hours</option><option value="86400">24 hours</option></select></label>
+        <div id="form-error" class="form-error" hidden></div>
+        <div class="modal-actions"><button class="button button-ghost" type="button" data-modal-close>Cancel</button><button id="submit-build" class="button button-primary" type="submit">Create and run</button></div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

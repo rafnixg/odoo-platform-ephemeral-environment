@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mini-runbot"
-version = "0.1.0"
+version = "0.2.0"
 description = "A small, local build orchestrator proof of concept for Odoo 16"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,6 +13,7 @@ dependencies = [
   "jinja2>=3.1,<4",
   "pydantic>=2.9,<3",
   "pyyaml>=6,<7",
+  "rich>=13,<15",
   "sqlalchemy>=2.0,<3",
   "typer>=0.12,<1",
   "uvicorn>=0.30,<1",
@@ -31,6 +32,9 @@ mini-runbot = "mini_runbot.cli.main:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+mini_runbot = ["web/*.html", "web/*.css", "web/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

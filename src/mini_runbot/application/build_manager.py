@@ -43,7 +43,13 @@ class BuildManager:
         repository_source = request.repository
         if self.settings and self.settings.repositories:
             repository_source = self.settings.repository(request.repository, request.ref).url
-        host_port = self.port_allocator.allocate() if self.port_allocator else None
+        terminal = {BuildStatus.DESTROYED, BuildStatus.EXPIRED}
+        used_ports = {
+            item.host_port
+            for item in self.repository.list()
+            if item.host_port is not None and item.status not in terminal
+        }
+        host_port = self.port_allocator.allocate(used_ports) if self.port_allocator else None
         build = Build(
             id=build_id,
             status=BuildStatus.NEW,

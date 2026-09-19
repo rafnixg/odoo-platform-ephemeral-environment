@@ -8,7 +8,8 @@ from mini_runbot.api.app import app, get_executor, get_manager
 from mini_runbot.application.build_manager import BuildManager
 
 
-def test_api_create_get_list_and_destroy(tmp_path: Path) -> None:
+def test_api_create_get_list_and_destroy(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.delenv("MINI_RUNBOT_CONFIG", raising=False)
     repository = SqliteBuildRepository(f"sqlite:///{tmp_path / 'api.db'}")
     repository.create_schema()
     builds_root = tmp_path / "builds"
@@ -24,6 +25,15 @@ def test_api_create_get_list_and_destroy(tmp_path: Path) -> None:
 
     try:
         with TestClient(app) as client:
+            dashboard = client.get("/")
+            assert dashboard.status_code == 200
+            assert "Mini-Runbot" in dashboard.text
+            assert client.get("/assets/styles.css").status_code == 200
+            assert client.get("/assets/app.js").status_code == 200
+            public_config = client.get("/app-config")
+            assert public_config.status_code == 200
+            assert "repositories" in public_config.json()
+
             response = client.post(
                 "/builds",
                 json={
@@ -50,3 +60,25 @@ def test_api_create_get_list_and_destroy(tmp_path: Path) -> None:
             assert logs.json()["content"] == ""
     finally:
         app.dependency_overrides.clear()
+
+
+def test_public_config_does_not_expose_repository_paths(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "private-source"
+    source.mkdir()
+    config = tmp_path / "config.yaml"
+    config.write_text(
+        "repositories:\n  custom:\n    url: "
+        + source.as_posix()
+        + "\n    default_ref: '16.0'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MINI_RUNBOT_CONFIG", str(config))
+
+    with TestClient(app) as client:
+        response = client.get("/app-config")
+
+    assert response.status_code == 200
+    assert response.json()["repositories"] == [
+        {"alias": "custom", "default_ref": "16.0", "allow_request_ref": True}
+    ]
+    assert str(source) not in response.text

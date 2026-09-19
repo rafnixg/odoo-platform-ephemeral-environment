@@ -57,3 +57,15 @@ class BuildLogsResponse(BaseModel):
     stage: str | None
     content: str
     truncated_to_bytes: int
+
+
+class RepositoryOptionResponse(BaseModel):
+    alias: str
+    default_ref: str
+    allow_request_ref: bool
+
+
+class PublicConfigResponse(BaseModel):
+    repositories: list[RepositoryOptionResponse]
+    default_ttl_seconds: int = 14_400
+    max_concurrent_builds: int

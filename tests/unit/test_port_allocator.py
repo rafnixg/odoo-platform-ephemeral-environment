@@ -11,3 +11,11 @@ def test_allocator_avoids_collisions_and_reuses_released_port() -> None:
 
     assert first != second
     assert reused == first
+
+
+def test_allocator_skips_ports_reserved_by_persistence() -> None:
+    allocator = SocketPortAllocator(32111, 32112)
+
+    allocated = allocator.allocate({32111})
+
+    assert allocated == 32112

@@ -82,7 +82,7 @@ class FakeRuntime:
 class FixedPort:
     released: list[int] = []
 
-    def allocate(self) -> int:
+    def allocate(self, excluded: set[int] | None = None) -> int:
         return 18123
 
     def release(self, port: int) -> None:

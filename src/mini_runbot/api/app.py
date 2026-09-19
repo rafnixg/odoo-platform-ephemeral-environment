@@ -1,9 +1,12 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-from mini_runbot.api.schemas import BuildLogsResponse, BuildResponse
+from mini_runbot.api.schemas import BuildLogsResponse, BuildResponse, PublicConfigResponse
 from mini_runbot.application.build_manager import BuildManager
 from mini_runbot.application.executor import LocalBuildExecutor
 from mini_runbot.bootstrap import create_manager
@@ -11,7 +14,9 @@ from mini_runbot.config import Settings
 from mini_runbot.domain.errors import BuildNotFoundError, MiniRunbotError
 from mini_runbot.domain.validation import CreateBuildRequest
 
-app = FastAPI(title="Mini-Runbot", version="0.1.0")
+app = FastAPI(title="Mini-Runbot", version="0.2.0")
+web_root = Path(__file__).resolve().parents[1] / "web"
+app.mount("/assets", StaticFiles(directory=web_root), name="assets")
 
 
 @lru_cache(maxsize=1)
@@ -29,6 +34,27 @@ def get_executor() -> LocalBuildExecutor:
 
 
 ExecutorDependency = Annotated[LocalBuildExecutor, Depends(get_executor)]
+
+
+@app.get("/", include_in_schema=False)
+def dashboard() -> FileResponse:
+    return FileResponse(web_root / "index.html")
+
+
+@app.get("/app-config", response_model=PublicConfigResponse)
+def public_config() -> PublicConfigResponse:
+    settings = Settings.from_environment()
+    return PublicConfigResponse(
+        repositories=[
+            {
+                "alias": alias,
+                "default_ref": repository.default_ref,
+                "allow_request_ref": repository.allow_request_ref,
+            }
+            for alias, repository in sorted(settings.repositories.items())
+        ],
+        max_concurrent_builds=settings.max_concurrent_builds,
+    )
 
 
 @app.post("/builds", response_model=BuildResponse, status_code=status.HTTP_202_ACCEPTED)
