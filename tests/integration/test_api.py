@@ -21,6 +21,9 @@ def test_api_create_get_list_and_destroy(tmp_path: Path, monkeypatch) -> None:
         def submit(self, build_id: str) -> None:
             submitted.append(build_id)
 
+        def is_active(self, build_id: str) -> bool:
+            return False
+
     app.dependency_overrides[get_executor] = RecordingExecutor
 
     try:
@@ -58,6 +61,46 @@ def test_api_create_get_list_and_destroy(tmp_path: Path, monkeypatch) -> None:
             logs = client.get(f"/builds/{build_id}/logs")
             assert logs.status_code == 200
             assert logs.json()["content"] == ""
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_api_rejects_destroy_while_build_execution_is_active(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("MINI_RUNBOT_CONFIG", raising=False)
+    repository = SqliteBuildRepository(f"sqlite:///{tmp_path / 'active-api.db'}")
+    repository.create_schema()
+    builds_root = tmp_path / "builds"
+    manager = BuildManager(repository, LocalRuntimeService(builds_root), builds_root)
+
+    class ActiveExecutor:
+        def submit(self, build_id: str) -> None:
+            pass
+
+        def is_active(self, build_id: str) -> bool:
+            return True
+
+    app.dependency_overrides[get_manager] = lambda: manager
+    app.dependency_overrides[get_executor] = ActiveExecutor
+
+    try:
+        with TestClient(app) as client:
+            created = client.post(
+                "/builds",
+                json={
+                    "repository": "custom",
+                    "ref": "feature/active",
+                    "modules": ["demo_module"],
+                },
+            )
+            build_id = created.json()["id"]
+
+            response = client.delete(f"/builds/{build_id}")
+
+            assert response.status_code == 409
+            assert "still active" in response.json()["detail"]
+            assert manager.get(build_id).status.value == "new"
     finally:
         app.dependency_overrides.clear()
 

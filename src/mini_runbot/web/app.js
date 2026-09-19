@@ -97,7 +97,7 @@ function stageMarkup(stage) {
 function renderDrawer(build) {
   if (!build) return closeDrawer();
   const repositories = build.repositories.map((repo) => `<div><span>${escapeHtml(repo.name)}</span><strong class="sha">${escapeHtml(repo.commit_sha || "Pending resolution")}</strong></div>`).join("");
-  const canDestroy = build.status !== "destroyed" && build.status !== "destroying";
+  const canDestroy = !activeStatuses.has(build.status) && build.status !== "destroyed";
   const preview = build.status === "running" && build.preview_url ? `<a class="button button-primary" href="${escapeHtml(build.preview_url)}" target="_blank" rel="noopener">Open preview ↗</a>` : "";
   $("#drawer-content").innerHTML = `
     <header class="drawer-header"><div class="drawer-header-top"><div><p class="eyebrow">BUILD DETAIL</p><h2>${escapeHtml(build.id)}</h2></div><button class="icon-button" data-action="close" aria-label="Close details">×</button></div>

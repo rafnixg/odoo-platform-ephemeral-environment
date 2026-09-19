@@ -61,6 +61,8 @@ mini-runbot serve --reload
 Open `http://127.0.0.1:8000` for the built-in dashboard. It provides build metrics, filtering,
 creation, live polling, stage timelines, safe log viewing, preview links, and runtime destruction.
 The frontend is served by FastAPI and needs no separate Node.js build or deployment.
+Runtime destruction is rejected while the in-process worker is still executing the build, avoiding
+concurrent lifecycle transitions and partial resource cleanup.
 
 Available operations are `POST /builds`, `GET /builds`, `GET /builds/{build_id}`,
 `GET /builds/{build_id}/logs?stage=test`, and `DELETE /builds/{build_id}`. `POST /builds`

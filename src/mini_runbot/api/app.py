@@ -90,8 +90,20 @@ def get_build(build_id: str, manager: ManagerDependency) -> BuildResponse:
 
 
 @app.delete("/builds/{build_id}", response_model=BuildResponse)
-def destroy_build(build_id: str, manager: ManagerDependency) -> BuildResponse:
+def destroy_build(
+    build_id: str,
+    manager: ManagerDependency,
+    executor: ExecutorDependency,
+) -> BuildResponse:
     try:
+        manager.get(build_id)
+        if executor.is_active(build_id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Build execution is still active; wait for it to finish before destroying it"
+                ),
+            )
         return BuildResponse.from_domain(manager.destroy(build_id))
     except BuildNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
