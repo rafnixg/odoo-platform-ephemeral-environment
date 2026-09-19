@@ -1,0 +1,17 @@
+database_url: sqlite:///./mini_runbot.db
+builds_root: ./builds
+odoo_image: odoo:16.0
+postgres_image: postgres:15
+port_start: 18100
+port_end: 18199
+command_timeout_seconds: 900
+health_timeout_seconds: 180
+max_concurrent_builds: 2
+repositories:
+  demo:
+    url: .
+    default_ref: master
+    target: demo-source
+    addons_subpath: demo_addons
+    allow_request_ref: true
+    addons_priority: 100

@@ -56,3 +56,10 @@ class Build:
     def transition_to(self, target: BuildStatus) -> None:
         validate_transition(self.status, target)
         self.status = target
+
+
+@dataclass(frozen=True, slots=True)
+class CleanupResult:
+    examined: int
+    destroyed_ids: list[str]
+    failed_ids: list[str]

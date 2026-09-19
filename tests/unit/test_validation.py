@@ -10,8 +10,9 @@ def test_rejects_unsafe_module_names(module: str) -> None:
         CreateBuildRequest(repository="custom", ref="16.0", modules=[module])
 
 
-@pytest.mark.parametrize("ref", ["../main", "/main", "main..evil", "main\\evil", "main/"])
+@pytest.mark.parametrize(
+    "ref", ["../main", "/main", "-option", "main..evil", "main\\evil", "main/"]
+)
 def test_rejects_unsafe_refs(ref: str) -> None:
     with pytest.raises(ValidationError):
         CreateBuildRequest(repository="custom", ref=ref, modules=["base"])
-

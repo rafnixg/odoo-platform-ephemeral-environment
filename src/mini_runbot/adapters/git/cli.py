@@ -51,11 +51,16 @@ class GitCliService:
         output = self._run(["git", "clone", "--no-checkout", "--", str(source), str(target)])
         output += self._run(["git", "-C", str(target), "checkout", "--detach", sha])
         log_path.write_text(output, encoding="utf-8")
+        addons_path = (target / config.addons_subpath).resolve()
+        if target not in {addons_path, *addons_path.parents} or not addons_path.is_dir():
+            raise GitOperationError(
+                f"Configured addons_subpath does not exist inside checkout: {config.addons_subpath}"
+            )
         return replace(
             revision,
             source=str(source),
             commit_sha=sha,
-            checkout_path=str(target),
+            checkout_path=str(addons_path),
             addons_priority=config.addons_priority,
         )
 

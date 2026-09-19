@@ -137,5 +137,25 @@ def doctor() -> None:
         raise typer.Exit(1)
 
 
+@app.command("cleanup")
+def cleanup(
+    expired: Annotated[bool, typer.Option("--expired", help="Destroy expired builds.")] = False,
+) -> None:
+    if not expired:
+        typer.echo("Specify --expired", err=True)
+        raise typer.Exit(2)
+    result = create_manager(docker=True).cleanup_expired()
+    typer.echo(
+        json.dumps(
+            {
+                "examined": result.examined,
+                "destroyed_ids": result.destroyed_ids,
+                "failed_ids": result.failed_ids,
+            },
+            indent=2,
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

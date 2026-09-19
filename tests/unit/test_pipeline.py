@@ -80,8 +80,13 @@ class FakeRuntime:
 
 
 class FixedPort:
+    released: list[int] = []
+
     def allocate(self) -> int:
         return 18123
+
+    def release(self, port: int) -> None:
+        self.released.append(port)
 
 
 def _manager(tmp_path: Path, runtime: FakeRuntime) -> BuildManager:

@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from mini_runbot.adapters.persistence.sqlite import SqliteBuildRepository
 from mini_runbot.adapters.runtime.local import LocalRuntimeService
-from mini_runbot.api.app import app, get_manager
+from mini_runbot.api.app import app, get_executor, get_manager
 from mini_runbot.application.build_manager import BuildManager
 
 
@@ -14,6 +14,13 @@ def test_api_create_get_list_and_destroy(tmp_path: Path) -> None:
     builds_root = tmp_path / "builds"
     manager = BuildManager(repository, LocalRuntimeService(builds_root), builds_root)
     app.dependency_overrides[get_manager] = lambda: manager
+    submitted: list[str] = []
+
+    class RecordingExecutor:
+        def submit(self, build_id: str) -> None:
+            submitted.append(build_id)
+
+    app.dependency_overrides[get_executor] = RecordingExecutor
 
     try:
         with TestClient(app) as client:
@@ -25,9 +32,10 @@ def test_api_create_get_list_and_destroy(tmp_path: Path) -> None:
                     "modules": ["demo_module"],
                 },
             )
-            assert response.status_code == 201
+            assert response.status_code == 202
             build_id = response.json()["id"]
             assert response.json()["status"] == "new"
+            assert submitted == [build_id]
 
             assert client.get(f"/builds/{build_id}").json()["id"] == build_id
             assert [item["id"] for item in client.get("/builds").json()] == [build_id]
@@ -36,6 +44,9 @@ def test_api_create_get_list_and_destroy(tmp_path: Path) -> None:
             assert destroyed.status_code == 200
             assert destroyed.json()["status"] == "destroyed"
             assert client.delete(f"/builds/{build_id}").json()["status"] == "destroyed"
+
+            logs = client.get(f"/builds/{build_id}/logs")
+            assert logs.status_code == 200
+            assert logs.json()["content"] == ""
     finally:
         app.dependency_overrides.clear()
-

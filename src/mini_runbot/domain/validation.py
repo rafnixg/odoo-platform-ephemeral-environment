@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 SAFE_ALIAS = re.compile(r"^[a-z][a-z0-9_-]{0,62}$")
 SAFE_MODULE = re.compile(r"^[a-z][a-z0-9_]{0,127}$")
-SAFE_REF = re.compile(r"^(?!/)(?!.*(?:\.\.|//|@\{|\\))[A-Za-z0-9._/-]{1,200}(?<![/.])$")
+SAFE_REF = re.compile(r"^(?![-/])(?!.*(?:\.\.|//|@\{|\\))[A-Za-z0-9._/-]{1,200}(?<![/.])$")
 
 
 class CreateBuildRequest(BaseModel):
@@ -37,4 +37,3 @@ class CreateBuildRequest(BaseModel):
         if len(set(values)) != len(values):
             raise ValueError("module names must be unique")
         return values
-

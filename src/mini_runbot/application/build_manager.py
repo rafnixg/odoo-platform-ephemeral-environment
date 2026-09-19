@@ -7,8 +7,8 @@ from uuid import uuid4
 
 from mini_runbot.config import Settings
 from mini_runbot.domain.enums import BuildStatus, StageStatus
-from mini_runbot.domain.errors import BuildNotFoundError, ConfigurationError
-from mini_runbot.domain.models import Build, RepositoryRevision, StageResult
+from mini_runbot.domain.errors import BuildNotFoundError, ConfigurationError, UnsafePathError
+from mini_runbot.domain.models import Build, CleanupResult, RepositoryRevision, StageResult
 from mini_runbot.domain.validation import CreateBuildRequest
 from mini_runbot.ports.repositories import BuildRepository
 from mini_runbot.ports.services import (
@@ -68,6 +68,8 @@ class BuildManager:
         try:
             self.runtime.prepare(build.id, build.workspace_path)
         except Exception as exc:
+            if self.port_allocator and build.host_port:
+                self.port_allocator.release(build.host_port)
             build.failure_stage = "prepare_workspace"
             build.failure_message = str(exc)[:1000]
             build.transition_to(BuildStatus.FAILED)
@@ -192,6 +194,28 @@ class BuildManager:
     def list(self) -> list[Build]:
         return self.repository.list()
 
+    @property
+    def execution_ready(self) -> bool:
+        return self.git is not None and self._is_build_runtime(self.runtime)
+
+    def read_logs(self, build_id: str, stage: str | None = None, max_bytes: int = 100_000) -> str:
+        build = self.get(build_id)
+        logs_root = (build.workspace_path / "logs").resolve()
+        selected = [item for item in build.stages if stage is None or item.name == stage]
+        chunks: list[str] = []
+        for item in selected:
+            if not item.log_path:
+                continue
+            path = Path(item.log_path).resolve()
+            if path.parent != logs_root:
+                raise UnsafePathError(
+                    f"Recorded log path is outside the build log directory: {path}"
+                )
+            if path.is_file():
+                content = path.read_bytes()[-max_bytes:].decode("utf-8", errors="replace")
+                chunks.append(f"== {item.name} ==\n{content}")
+        return "\n".join(chunks)[-max_bytes:]
+
     def destroy(self, build_id: str) -> Build:
         build = self.get(build_id)
         if build.status == BuildStatus.DESTROYED:
@@ -200,7 +224,57 @@ class BuildManager:
             build.transition_to(BuildStatus.DESTROYING)
             self.repository.update(build)
         self.runtime.destroy(build.id, build.workspace_path)
+        if self.port_allocator and build.host_port:
+            self.port_allocator.release(build.host_port)
         build.transition_to(BuildStatus.DESTROYED)
         build.finished_at = datetime.now(UTC)
         self.repository.update(build)
         return build
+
+    def cleanup_expired(self, now: datetime | None = None) -> CleanupResult:
+        cutoff = now or datetime.now(UTC)
+        destroyed: list[str] = []
+        failed: list[str] = []
+        builds = self.list()
+        for build in builds:
+            expires_at = build.expires_at
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=UTC)
+            if expires_at > cutoff or build.status == BuildStatus.DESTROYED:
+                continue
+            try:
+                if build.status == BuildStatus.RUNNING:
+                    build.transition_to(BuildStatus.EXPIRED)
+                    self.repository.update(build)
+                self.destroy(build.id)
+                destroyed.append(build.id)
+            except Exception:
+                failed.append(build.id)
+        return CleanupResult(len(builds), destroyed, failed)
+
+    def recover_interrupted(self) -> CleanupResult:
+        active = {
+            BuildStatus.CHECKING_OUT,
+            BuildStatus.PREPARING,
+            BuildStatus.INSTALLING,
+            BuildStatus.TESTING,
+            BuildStatus.STARTING,
+        }
+        recovered: list[str] = []
+        failed: list[str] = []
+        builds = self.list()
+        for build in builds:
+            try:
+                if build.status == BuildStatus.DESTROYING:
+                    self.destroy(build.id)
+                    recovered.append(build.id)
+                elif build.status in active:
+                    build.failure_stage = "recovery"
+                    build.failure_message = "Build was interrupted by an orchestrator restart"
+                    build.finished_at = datetime.now(UTC)
+                    build.transition_to(BuildStatus.FAILED)
+                    self.repository.update(build)
+                    recovered.append(build.id)
+            except Exception:
+                failed.append(build.id)
+        return CleanupResult(len(builds), recovered, failed)

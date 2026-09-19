@@ -50,3 +50,10 @@ class BuildResponse(BaseModel):
     @classmethod
     def from_domain(cls, build: Build) -> "BuildResponse":
         return cls.model_validate(build)
+
+
+class BuildLogsResponse(BaseModel):
+    build_id: str
+    stage: str | None
+    content: str
+    truncated_to_bytes: int

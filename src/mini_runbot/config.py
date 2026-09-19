@@ -13,6 +13,7 @@ from mini_runbot.domain.validation import SAFE_ALIAS
 class RepositoryConfig:
     url: str
     target: str
+    addons_subpath: str = "."
     default_ref: str = "16.0"
     allow_request_ref: bool = True
     addons_priority: int = 100
@@ -60,10 +61,14 @@ class Settings:
             repositories[alias] = RepositoryConfig(
                 url=str(item["url"]),
                 target=target,
+                addons_subpath=str(item.get("addons_subpath", ".")),
                 default_ref=str(item.get("default_ref", "16.0")),
                 allow_request_ref=bool(item.get("allow_request_ref", True)),
                 addons_priority=int(item.get("addons_priority", 100)),
             )
+            subpath = Path(repositories[alias].addons_subpath)
+            if subpath.is_absolute() or ".." in subpath.parts:
+                raise ConfigurationError(f"Invalid addons_subpath for repository {alias}")
 
         return cls(
             database_url=os.getenv(

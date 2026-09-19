@@ -1,11 +1,19 @@
 # Reserved for Phase 1 repository allowlist and Odoo runtime settings.
 database_url: sqlite:///./mini_runbot.db
 builds_root: ./builds
-default_ttl_seconds: 14400
+odoo_image: odoo:16.0
+postgres_image: postgres:15
+port_start: 18000
+port_end: 19999
+command_timeout_seconds: 900
+health_timeout_seconds: 120
+max_concurrent_builds: 2
+retain_failed_runtime: false
 repositories:
   custom:
     url: C:/path/to/allowed/custom-addons
     default_ref: "16.0"
     target: custom-addons
+    addons_subpath: .
     allow_request_ref: true
-
+    addons_priority: 100
