@@ -44,6 +44,7 @@ def test_render_uses_isolated_names_port_and_read_only_mount(tmp_path: Path) -> 
     assert result.exit_code == 0
     assert "127.0.0.1:18123:8069" in rendered
     assert "build_safe" in rendered
+    assert "--db_host=db" in rendered
+    assert "--database_host" not in rendered
     assert f"{checkout.as_posix()}:/mnt/addons/custom:ro" in rendered.replace("\\\\", "/")
     assert "/var/run/docker.sock" not in rendered
-
