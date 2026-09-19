@@ -2,6 +2,7 @@ import json
 import platform
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -28,6 +29,7 @@ def create_build(
     ref: Annotated[str, typer.Option("--ref")],
     modules: Annotated[str, typer.Option("--modules")],
     ttl_seconds: Annotated[int, typer.Option("--ttl-seconds")] = 14_400,
+    run: Annotated[bool, typer.Option("--run", help="Execute immediately with Docker.")] = False,
 ) -> None:
     request = CreateBuildRequest(
         repository=repo,
@@ -35,7 +37,11 @@ def create_build(
         modules=[item.strip() for item in modules.split(",") if item.strip()],
         ttl_seconds=ttl_seconds,
     )
-    _print_build(create_manager().create(request))
+    manager = create_manager(docker=run)
+    build = manager.create(request)
+    if run:
+        build = manager.execute(build.id)
+    _print_build(build)
 
 
 @build_app.command("get")
@@ -63,6 +69,37 @@ def destroy_build(build_id: str) -> None:
     except MiniRunbotError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
+
+
+@build_app.command("run")
+def run_build(build_id: str) -> None:
+    try:
+        _print_build(create_manager(docker=True).execute(build_id))
+    except MiniRunbotError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+@build_app.command("logs")
+def build_logs(
+    build_id: str,
+    stage: Annotated[str | None, typer.Option("--stage")] = None,
+) -> None:
+    try:
+        build = create_manager().get(build_id)
+    except BuildNotFoundError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+    selected = [item for item in build.stages if stage is None or item.name == stage]
+    if not selected:
+        typer.echo("No matching stage logs", err=True)
+        raise typer.Exit(1)
+    for item in selected:
+        typer.echo(f"== {item.name} ({item.status}) ==")
+        if item.log_path and Path(item.log_path).is_file():
+            typer.echo(Path(item.log_path).read_text(encoding="utf-8", errors="replace"))
+        else:
+            typer.echo(item.summary or "No log file recorded")
 
 
 def _command_version(arguments: list[str]) -> tuple[bool, str]:

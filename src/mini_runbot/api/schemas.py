@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from mini_runbot.domain.enums import BuildStatus
+from mini_runbot.domain.enums import BuildStatus, StageStatus
 from mini_runbot.domain.models import Build
 
 
@@ -12,6 +12,20 @@ class RepositoryResponse(BaseModel):
     name: str
     requested_ref: str
     commit_sha: str | None
+    checkout_path: str | None
+
+
+class StageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    status: StageStatus
+    started_at: datetime | None
+    finished_at: datetime | None
+    duration_seconds: float | None
+    exit_code: int | None
+    log_path: str | None
+    summary: str | None
 
 
 class BuildResponse(BaseModel):
@@ -30,6 +44,7 @@ class BuildResponse(BaseModel):
     preview_url: str | None
     failure_stage: str | None
     failure_message: str | None
+    stages: list[StageResponse]
     version: int
 
     @classmethod
