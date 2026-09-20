@@ -1,0 +1,69 @@
+name: Documentation
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "gh-docs/**"
+      - "scripts/check_docs.py"
+      - "pyproject.toml"
+      - "README.md"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "gh-docs/**"
+      - "scripts/check_docs.py"
+      - "pyproject.toml"
+      - "README.md"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install documentation dependencies
+        run: python -m pip install -e ".[docs]"
+      - name: Check translation parity
+        run: python scripts/check_docs.py
+      - name: Build Spanish site
+        run: python -m mkdocs build --strict --config-file gh-docs/mkdocs.es.yml --site-dir ../site
+      - name: Build English site
+        run: python -m mkdocs build --strict --config-file gh-docs/mkdocs.en.yml --site-dir ../site/en
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

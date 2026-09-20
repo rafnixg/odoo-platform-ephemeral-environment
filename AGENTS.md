@@ -9,8 +9,9 @@ Mini-Runbot is a local, single-host proof of concept for turning configured Git 
 Odoo module lists into isolated, tested, temporary Odoo 16 environments. It is intended for
 trusted repositories and is not a security boundary for hostile code.
 
-Keep changes aligned with the current roadmap in `docs/roadmap.md`. Do not introduce distributed
-infrastructure, Kubernetes, or unrelated platform features unless the task explicitly requires it.
+Keep changes aligned with the current roadmap in `gh-docs/es/roadmap.md`. Do not introduce
+distributed infrastructure, Kubernetes, or unrelated platform features unless the task explicitly
+requires it.
 
 ## Supported environment
 

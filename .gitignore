@@ -4,9 +4,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.tmp/
 *.egg-info/
 .coverage
 htmlcov/
+site/
 builds/*
 !builds/.gitkeep
 *.db

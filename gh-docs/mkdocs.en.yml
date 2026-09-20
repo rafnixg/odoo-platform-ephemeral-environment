@@ -1,0 +1,83 @@
+site_name: Mini-Runbot
+site_description: Ephemeral, isolated, and reproducible Odoo 16 environments
+site_url: https://rafnixg.github.io/odoo-platform-ephemeral-environment/en/
+repo_url: https://github.com/rafnixg/odoo-platform-ephemeral-environment
+repo_name: rafnixg/odoo-platform-ephemeral-environment
+edit_uri: edit/master/gh-docs/en/
+docs_dir: en
+
+theme:
+  name: material
+  language: en
+  icon:
+    logo: material/cube-outline
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.footer
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+    - content.action.edit
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+
+plugins:
+  - search:
+      lang: en
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+
+extra:
+  alternate:
+    - name: Español
+      link: /odoo-platform-ephemeral-environment/
+      lang: es
+    - name: English
+      link: /odoo-platform-ephemeral-environment/en/
+      lang: en
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Usage:
+      - Functional guide: user-guide.md
+      - Configuration: configuration.md
+      - CLI: cli.md
+      - HTTP API: api.md
+  - Operations:
+      - Architecture: architecture.md
+      - Operations and security: operations.md
+      - Development and tests: development.md
+  - Project:
+      - Roadmap: roadmap.md
+      - Decisions:
+          - ADR 0001 — Initial architecture: decisions/0001-phase-0-architecture.md
+          - ADR 0002 — Execution and recovery: decisions/0002-local-execution-and-recovery.md
+
+copyright: Mini-Runbot is a proof of concept for trusted repositories.

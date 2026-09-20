@@ -1,4 +1,4 @@
-.PHONY: install test lint doctor api demo
+.PHONY: install test lint docs-check docs-build docs-serve doctor api demo
 
 install:
 	python -m pip install -e ".[dev]"
@@ -8,6 +8,16 @@ test:
 
 lint:
 	python -m ruff check .
+
+docs-check:
+	python scripts/check_docs.py
+	python -m mkdocs build --strict --config-file gh-docs/mkdocs.es.yml --site-dir ../site
+	python -m mkdocs build --strict --config-file gh-docs/mkdocs.en.yml --site-dir ../site/en
+
+docs-build: docs-check
+
+docs-serve:
+	python -m mkdocs serve --config-file gh-docs/mkdocs.es.yml
 
 doctor:
 	python -m mini_runbot.cli.main doctor
