@@ -36,6 +36,10 @@ La destrucción usa el proyecto Compose y workspace validados del build, ejecuta
 - PostgreSQL no publica puertos en el host; el preview se enlaza a loopback.
 - Credenciales y secretos deben permanecer en mecanismos del host, fuera de configuración y logs.
 
+En Windows, verifique que Docker Desktop continúe usando contenedores Linux antes de operar. En
+Linux, proteja `/var/run/docker.sock`: acceso al socket o pertenencia al grupo `docker` permite
+controlar el daemon y debe considerarse un privilegio administrativo.
+
 !!! danger
     Un repositorio permitido puede ejecutar Python y procesos dentro del runtime Odoo. Docker no
     convierte este PoC en un servicio multiusuario seguro. Use un host dedicado y código confiable.

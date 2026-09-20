@@ -7,13 +7,8 @@ operator-defined aliases; neither the API nor CLI accepts arbitrary URLs or path
 
 Use the dashboard to select repositories and refs, add modules, and submit the form. From the CLI:
 
-```powershell
-mini-runbot build create `
-  --repo custom --ref feature/catalog `
-  --extra-repo oca=16.0 `
-  --modules custom_sale,website_sale `
-  --ttl-seconds 14400 `
-  --run
+```console
+mini-runbot build create --repo custom --ref feature/catalog --extra-repo oca=16.0 --modules custom_sale,website_sale --ttl-seconds 14400 --run
 ```
 
 Each alias's `addons_priority` determines `addons_path` order; payload order does not.

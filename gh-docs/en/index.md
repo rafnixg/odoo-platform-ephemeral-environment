@@ -11,6 +11,7 @@ Odoo 16 environment. It is a single-host proof of concept for trusted code.
 - Stores states, timings, revisions, failures, and logs in SQLite.
 - Exposes the same lifecycle through a dashboard, FastAPI API, and Typer CLI.
 - Isolates every build with its own Compose project, network, database, volumes, and port.
+- Installs and operates on both Windows with PowerShell and Linux with Bash.
 
 ## Main flow
 

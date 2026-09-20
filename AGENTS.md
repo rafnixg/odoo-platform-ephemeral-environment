@@ -16,16 +16,28 @@ requires it.
 ## Supported environment
 
 - Python 3.12 is the target version.
-- Docker Desktop must use Linux containers for real Odoo builds.
-- The project must work from PowerShell on Windows; avoid shell-specific assumptions.
+- On Windows, Docker Desktop must use Linux containers and PowerShell must be supported.
+- On Linux, Docker Engine with the Compose v2 plugin and Bash must be supported.
+- Keep application behavior and documentation portable across Windows and Linux; avoid
+  shell-specific assumptions in shared code.
 - Git repository inputs must come from configured aliases. Do not accept arbitrary repository URLs
   or filesystem paths from API or CLI requests.
 
 Install the development environment from the repository root:
 
+Windows PowerShell:
+
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+```
+
+Linux Bash:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```
 

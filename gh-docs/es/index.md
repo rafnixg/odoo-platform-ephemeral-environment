@@ -12,6 +12,7 @@ de confianza.
 - Conserva estados, duraciones, revisiones, errores y logs en SQLite.
 - Expone el mismo ciclo de vida mediante dashboard, API FastAPI y CLI Typer.
 - Aísla cada build con su propio proyecto Compose, red, base de datos, volúmenes y puerto.
+- Se instala y opera tanto en Windows con PowerShell como en Linux con Bash.
 
 ## Flujo principal
 

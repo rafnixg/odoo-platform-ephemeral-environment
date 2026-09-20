@@ -4,13 +4,14 @@ The CLI and API use the same `BuildManager`, validations, and transitions.
 
 ## Builds
 
-```powershell
+Single-line commands work the same in PowerShell and Bash:
+
+```console
 # Create and execute
 mini-runbot build create --repo custom --ref 16.0 --modules module_a,module_b --run
 
 # Add repositories
-mini-runbot build create --repo custom --ref feature/x --extra-repo oca=16.0 `
-  --modules module_a --run
+mini-runbot build create --repo custom --ref feature/x --extra-repo oca=16.0 --modules module_a --run
 
 # Inspect
 mini-runbot build list
@@ -28,7 +29,7 @@ mini-runbot build destroy BUILD_ID
 
 ## Service and diagnostics
 
-```powershell
+```console
 mini-runbot serve --host 127.0.0.1 --port 8000 --reload
 mini-runbot doctor
 mini-runbot recover
@@ -39,7 +40,7 @@ leases, and retries pending destruction.
 
 ## Cleanup
 
-```powershell
+```console
 mini-runbot cleanup --expired
 mini-runbot cleanup --retained
 mini-runbot cleanup --expired --retained --json

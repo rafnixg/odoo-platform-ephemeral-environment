@@ -52,8 +52,14 @@ Cada clave bajo `repositories` es un alias confiable. `target` debe ser único, 
 ser relativo y no puede escapar del checkout, y `allow_request_ref: false` limita solicitudes a
 `default_ref`. Un número menor en `addons_priority` tiene mayor precedencia.
 
-Las credenciales de remotos HTTPS/SSH deben proceder de Git Credential Manager o SSH del host;
-nunca las incluya en la URL o en el repositorio.
+Las credenciales de remotos HTTPS/SSH deben proceder del helper de credenciales de Git disponible
+en el host (por ejemplo, Git Credential Manager en Windows) o de SSH. Nunca las incluya en la URL o
+en el repositorio.
+
+Use `/` como separador en el YAML cuando sea posible: funciona en Windows y Linux. Las rutas locales
+de repositorios siguen perteneciendo al host, por lo que un `config.local.yaml` puede usar, por
+ejemplo, `C:/repos/addons` en Windows o `/srv/repos/addons` en Linux. No comparta una configuración
+con rutas absolutas entre sistemas.
 
 ## Variables de entorno
 
@@ -66,3 +72,5 @@ nunca las incluya en la URL o en el repositorio.
 | `MINI_RUNBOT_CLEANUP_INTERVAL_SECONDS` | `cleanup_interval_seconds`. |
 
 `config.local.yaml`, bases SQLite y `builds/` son estado local del operador y no deben versionarse.
+En ambos sistemas, el usuario del proceso necesita permisos de lectura sobre los repositorios y de
+escritura sobre la base SQLite y `builds_root`.

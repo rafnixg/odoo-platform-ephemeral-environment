@@ -52,8 +52,13 @@ Each key under `repositories` is a trusted alias. `target` must be unique, `addo
 relative and remain inside the checkout, and `allow_request_ref: false` restricts requests to
 `default_ref`. A lower `addons_priority` number has higher precedence.
 
-Remote HTTPS/SSH credentials must come from Git Credential Manager or the host's SSH setup; never
-embed them in a URL or commit them.
+Remote HTTPS/SSH credentials must come from a Git credential helper available on the host (for
+example, Git Credential Manager on Windows) or from SSH. Never embed them in a URL or commit them.
+
+Use `/` as the YAML path separator where possible: it works on Windows and Linux. Local repository
+paths still belong to the host, so a `config.local.yaml` might use `C:/repos/addons` on Windows or
+`/srv/repos/addons` on Linux. Do not share one absolute-path configuration between operating
+systems.
 
 ## Environment variables
 
@@ -66,4 +71,5 @@ embed them in a URL or commit them.
 | `MINI_RUNBOT_CLEANUP_INTERVAL_SECONDS` | `cleanup_interval_seconds`. |
 
 `config.local.yaml`, SQLite databases, and `builds/` are operator-owned local state and must not be
-committed.
+committed. On both systems, the process user needs read access to repositories and write access to
+the SQLite database and `builds_root`.

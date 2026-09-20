@@ -19,7 +19,10 @@ operations, security limits, testing, the roadmap, and architecture decisions.
 
 ## Quick start
 
-Python 3.12 and Docker Desktop with Linux containers are required for real Odoo builds.
+Python 3.12, Git, and Docker Compose v2 are required. On Windows, use Docker Desktop with Linux
+containers; on Linux, use Docker Engine with the Compose v2 plugin.
+
+### Windows · PowerShell
 
 ```powershell
 py -3.12 -m venv .venv
@@ -31,9 +34,21 @@ mini-runbot doctor
 mini-runbot serve --reload
 ```
 
+### Linux · Bash
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+cp config.example.yaml config.local.yaml
+export MINI_RUNBOT_CONFIG="$(realpath config.local.yaml)"
+mini-runbot doctor
+mini-runbot serve --reload
+```
+
 Open `http://127.0.0.1:8000`, or create a build from the CLI:
 
-```powershell
+```console
 mini-runbot build create --repo custom --ref 16.0 --modules module_a,module_b --run
 ```
 
@@ -42,14 +57,16 @@ client.
 
 ## Local checks
 
-```powershell
+The same commands work in an activated PowerShell or Bash environment:
+
+```console
 python -m pip install -e ".[dev,docs]"
 python -m pytest -m "not docker"
 python -m ruff check .
-node --check src\mini_runbot\web\app.js
-python scripts\check_docs.py
-python -m mkdocs build --strict --config-file gh-docs\mkdocs.es.yml --site-dir ..\site
-python -m mkdocs build --strict --config-file gh-docs\mkdocs.en.yml --site-dir ..\site\en
+node --check src/mini_runbot/web/app.js
+python scripts/check_docs.py
+python -m mkdocs build --strict --config-file gh-docs/mkdocs.es.yml --site-dir ../site
+python -m mkdocs build --strict --config-file gh-docs/mkdocs.en.yml --site-dir ../site/en
 git diff --check
 ```
 

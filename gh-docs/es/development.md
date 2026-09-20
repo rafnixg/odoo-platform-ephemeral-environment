@@ -2,21 +2,33 @@
 
 ## Entorno
 
-```powershell
-py -3.12 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev,docs]"
-```
+=== "Windows · PowerShell"
+
+    ```powershell
+    py -3.12 -m venv .venv
+    .venv\Scripts\Activate.ps1
+    python -m pip install -e ".[dev,docs]"
+    ```
+
+=== "Linux · Bash"
+
+    ```bash
+    python3.12 -m venv .venv
+    source .venv/bin/activate
+    python -m pip install -e ".[dev,docs]"
+    ```
 
 ## Comprobaciones locales
 
-```powershell
+Los siguientes comandos usan `/` y funcionan sin cambios en PowerShell y Bash:
+
+```console
 python -m pytest -m "not docker"
 python -m ruff check .
-node --check src\mini_runbot\web\app.js
-python scripts\check_docs.py
-python -m mkdocs build --strict --config-file gh-docs\mkdocs.es.yml --site-dir ..\site
-python -m mkdocs build --strict --config-file gh-docs\mkdocs.en.yml --site-dir ..\site\en
+node --check src/mini_runbot/web/app.js
+python scripts/check_docs.py
+python -m mkdocs build --strict --config-file gh-docs/mkdocs.es.yml --site-dir ../site
+python -m mkdocs build --strict --config-file gh-docs/mkdocs.en.yml --site-dir ../site/en
 git diff --check
 ```
 
@@ -38,8 +50,8 @@ HTTP 200 del preview; contenedores iniciados no bastan.
 El español se publica en la raíz y el inglés en `/en/`. Edite la misma ruta relativa en ambos
 árboles. Para previsualizar español:
 
-```powershell
-python -m mkdocs serve --config-file gh-docs\mkdocs.es.yml
+```console
+python -m mkdocs serve --config-file gh-docs/mkdocs.es.yml
 ```
 
 Los pull requests construyen ambos idiomas. Los pushes a `master` producen un único artefacto y lo
@@ -53,6 +65,6 @@ workflows.
 
 ## Convenciones
 
-Mantenga la dirección de dependencias, use `pathlib.Path`, preserve compatibilidad PowerShell y no
-incluya secretos o estado generado. Los commits deben ser enfocados, imperativos y seguir
-Conventional Commits.
+Mantenga la dirección de dependencias, use `pathlib.Path` y preserve compatibilidad tanto con
+PowerShell en Windows como con Bash en Linux. No incluya secretos o estado generado. Los commits
+deben ser enfocados, imperativos y seguir Conventional Commits.

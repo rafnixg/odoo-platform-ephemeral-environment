@@ -2,21 +2,33 @@
 
 ## Environment
 
-```powershell
-py -3.12 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev,docs]"
-```
+=== "Windows · PowerShell"
+
+    ```powershell
+    py -3.12 -m venv .venv
+    .venv\Scripts\Activate.ps1
+    python -m pip install -e ".[dev,docs]"
+    ```
+
+=== "Linux · Bash"
+
+    ```bash
+    python3.12 -m venv .venv
+    source .venv/bin/activate
+    python -m pip install -e ".[dev,docs]"
+    ```
 
 ## Local checks
 
-```powershell
+The following commands use `/` and work unchanged in PowerShell and Bash:
+
+```console
 python -m pytest -m "not docker"
 python -m ruff check .
-node --check src\mini_runbot\web\app.js
-python scripts\check_docs.py
-python -m mkdocs build --strict --config-file gh-docs\mkdocs.es.yml --site-dir ..\site
-python -m mkdocs build --strict --config-file gh-docs\mkdocs.en.yml --site-dir ..\site\en
+node --check src/mini_runbot/web/app.js
+python scripts/check_docs.py
+python -m mkdocs build --strict --config-file gh-docs/mkdocs.es.yml --site-dir ../site
+python -m mkdocs build --strict --config-file gh-docs/mkdocs.en.yml --site-dir ../site/en
 git diff --check
 ```
 
@@ -38,8 +50,8 @@ containers alone are not sufficient.
 Spanish is published at the site root and English under `/en/`. Edit the same relative path in both
 trees. Preview Spanish with:
 
-```powershell
-python -m mkdocs serve --config-file gh-docs\mkdocs.es.yml
+```console
+python -m mkdocs serve --config-file gh-docs/mkdocs.es.yml
 ```
 
 Pull requests build both languages. Pushes to `master` create one artifact and deploy it through the
@@ -52,5 +64,6 @@ manifests. These are one-time repository settings and do not require adding a PA
 
 ## Conventions
 
-Preserve dependency direction, use `pathlib.Path`, keep PowerShell compatibility, and never commit
-secrets or generated state. Commits should be focused, imperative Conventional Commits.
+Preserve dependency direction, use `pathlib.Path`, and maintain compatibility with both PowerShell
+on Windows and Bash on Linux. Never commit secrets or generated state. Commits should be focused,
+imperative Conventional Commits.

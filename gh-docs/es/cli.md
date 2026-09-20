@@ -4,13 +4,14 @@ La CLI y la API usan el mismo `BuildManager`, las mismas validaciones y las mism
 
 ## Builds
 
-```powershell
+Los comandos de una línea funcionan igual en PowerShell y Bash:
+
+```console
 # Crear y ejecutar
 mini-runbot build create --repo custom --ref 16.0 --modules module_a,module_b --run
 
 # Añadir repositorios
-mini-runbot build create --repo custom --ref feature/x --extra-repo oca=16.0 `
-  --modules module_a --run
+mini-runbot build create --repo custom --ref feature/x --extra-repo oca=16.0 --modules module_a --run
 
 # Consultar
 mini-runbot build list
@@ -28,7 +29,7 @@ ALIAS=REF` se puede repetir hasta el límite de repositorios del dominio.
 
 ## Servicio y diagnóstico
 
-```powershell
+```console
 mini-runbot serve --host 127.0.0.1 --port 8000 --reload
 mini-runbot doctor
 mini-runbot recover
@@ -39,7 +40,7 @@ interrumpidas, reconcilia leases y reintenta destrucciones pendientes.
 
 ## Limpieza
 
-```powershell
+```console
 mini-runbot cleanup --expired
 mini-runbot cleanup --retained
 mini-runbot cleanup --expired --retained --json

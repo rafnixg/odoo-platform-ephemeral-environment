@@ -44,5 +44,12 @@ puertos para coordinar procesos locales.
 El ejecutor no es una cola durable. Tras un reinicio controlado, `recover_interrupted()` clasifica
 estados activos como fallidos, reconcilia runtime y leases, y reintenta destrucciones pendientes.
 
+## Portabilidad
+
+El flujo de aplicación es el mismo en Windows y Linux. Las rutas se gestionan con `pathlib.Path`,
+los procesos se invocan con listas de argumentos sin depender de un shell y el runtime usa
+`docker compose`. Solo cambian la activación del entorno virtual, la asignación de variables de
+entorno y algunos comandos de administración documentados para PowerShell y Bash.
+
 Consulte las [decisiones arquitectónicas](decisions/0001-phase-0-architecture.md) para conocer el
 contexto y las consecuencias aceptadas.

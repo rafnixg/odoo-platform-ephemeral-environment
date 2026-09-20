@@ -9,13 +9,8 @@ arbitrarias.
 Desde el dashboard seleccione uno o más repositorios, indique sus refs, añada los módulos y envíe el
 formulario. Desde la CLI:
 
-```powershell
-mini-runbot build create `
-  --repo custom --ref feature/catalog `
-  --extra-repo oca=16.0 `
-  --modules custom_sale,website_sale `
-  --ttl-seconds 14400 `
-  --run
+```console
+mini-runbot build create --repo custom --ref feature/catalog --extra-repo oca=16.0 --modules custom_sale,website_sale --ttl-seconds 14400 --run
 ```
 
 La prioridad `addons_priority` de cada alias determina el orden del `addons_path`; no depende del

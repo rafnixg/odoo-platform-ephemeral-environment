@@ -44,5 +44,12 @@ coordinate local processes.
 The executor is not a durable queue. After a controlled restart, `recover_interrupted()` classifies
 active states as failed, reconciles runtimes and leases, and retries pending destruction.
 
+## Portability
+
+The application flow is identical on Windows and Linux. Paths use `pathlib.Path`, processes are
+invoked with argument lists without depending on a shell, and the runtime uses `docker compose`.
+Only virtual-environment activation, environment-variable assignment, and some administration
+commands differ; both PowerShell and Bash variants are documented.
+
 See the [architecture decisions](decisions/0001-phase-0-architecture.md) for accepted context and
 consequences.
