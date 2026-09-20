@@ -47,14 +47,15 @@ The project is distributed as a CLI application. The workflow only accepts tags 
 `v<project.version>`, builds the wheel and sdist in isolation, and verifies that the entry point,
 dashboard, Compose template, and example configuration are included.
 
-Before the first publication, an administrator must:
+Before each publication, an administrator should:
 
-1. choose and add the project license;
-2. create the protected `pypi` environment in GitHub;
-3. configure a PyPI Trusted Publisher for this repository and workflow;
-4. review the version and create the tag, for example `v0.2.0`.
+1. confirm the AGPL-3.0-or-later metadata and `LICENSE` file;
+2. keep the protected `pypi` environment in GitHub;
+3. keep the PyPI Trusted Publisher restricted to this repository and workflow;
+4. review the version and create the matching tag, for example `v0.2.1`.
 
-Trusted Publishing uses OIDC and avoids storing a PyPI token in GitHub Secrets.
+Trusted Publishing uses OIDC and avoids storing a PyPI token in GitHub Secrets. The dashboard also
+shows the AGPL notice and a source-code link for remote users.
 
 ## Equivalent local checks
 

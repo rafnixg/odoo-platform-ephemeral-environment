@@ -1,14 +1,16 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mini-runbot"
-version = "0.2.0"
+version = "0.2.1"
 description = "A small, local build orchestrator proof of concept for Odoo 16"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "rafnixg" }]
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 keywords = ["odoo", "docker", "runbot", "testing", "ephemeral-environments"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -52,6 +54,7 @@ mini-runbot = "mini_runbot.cli.main:app"
 Documentation = "https://rafnixg.github.io/odoo-platform-ephemeral-environment/"
 Repository = "https://github.com/rafnixg/odoo-platform-ephemeral-environment"
 Issues = "https://github.com/rafnixg/odoo-platform-ephemeral-environment/issues"
+Changelog = "https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/CHANGELOG.md"
 DeepWiki = "https://deepwiki.com/rafnixg/odoo-platform-ephemeral-environment"
 
 [tool.setuptools.packages.find]

@@ -31,7 +31,7 @@ distributed infrastructure.
 - [x] Bilingual documentation and automated quality and security checks.
 - [x] Self-contained PyPI application with runtime resources, `mini-runbot init`, and wheel checks.
 - [x] Tag-based publication workflow using PyPI Trusted Publishing.
-- [ ] Choose a license, configure the PyPI publisher, and complete the first release.
+- [x] Choose AGPL-3.0-or-later, configure the PyPI publisher, and complete the first release.
 
 ### Execution control and logs — next increment
 

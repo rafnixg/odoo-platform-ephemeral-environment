@@ -15,6 +15,7 @@ security boundary for hostile code.
 - [English documentation](https://rafnixg.github.io/odoo-platform-ephemeral-environment/en/)
 - [Documentation sources](gh-docs/es/index.md)
 - [Explore the codebase in DeepWiki](https://deepwiki.com/rafnixg/odoo-platform-ephemeral-environment)
+- [Changelog](CHANGELOG.md)
 
 The bilingual portal is the canonical project documentation. It covers installation on Windows and
 Linux, configuration, dashboard and CLI usage, the HTTP API, operations, security limits, testing,
@@ -31,6 +32,12 @@ implementation:
 
 DeepWiki provides a generated, code-oriented view that complements the maintained portal; when the
 two differ, the repository documentation and implementation are authoritative.
+
+## License
+
+Mini-Runbot is released under the [GNU Affero General Public License, version 3 or later](LICENSE).
+Network users of modified versions must be offered the corresponding source code as required by
+the license.
 
 ## Quick start
 

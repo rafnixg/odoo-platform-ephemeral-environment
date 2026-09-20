@@ -13,6 +13,7 @@ REQUIRED_SUFFIXES = {
     "mini_runbot/web/index.html",
     "mini_runbot/web/styles.css",
 }
+REQUIRED_LICENSE_EXPRESSION = "License-Expression: AGPL-3.0-or-later"
 
 
 def main() -> int:
@@ -38,6 +39,19 @@ def main() -> int:
         content = wheel.read(entry_points).decode("utf-8")
         if "mini-runbot = mini_runbot.cli.main:app" not in content:
             print("Wheel is missing the mini-runbot console entry point", file=sys.stderr)
+            return 1
+        metadata_name = next(
+            (name for name in names if name.endswith(".dist-info/METADATA")), None
+        )
+        license_name = next(
+            (name for name in names if name.endswith(".dist-info/licenses/LICENSE")), None
+        )
+        metadata = wheel.read(metadata_name).decode("utf-8") if metadata_name else ""
+        if REQUIRED_LICENSE_EXPRESSION not in metadata:
+            print("Wheel is missing the AGPL-3.0-or-later metadata", file=sys.stderr)
+            return 1
+        if license_name is None:
+            print("Wheel is missing the LICENSE file", file=sys.stderr)
             return 1
 
     print(f"Distribution verified: {wheels[0].name}")
