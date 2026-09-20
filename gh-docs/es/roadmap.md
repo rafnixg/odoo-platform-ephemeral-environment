@@ -29,7 +29,39 @@ infraestructura distribuida.
 - [x] Política opt-in de retención y eliminación de auditoría y logs.
 - [x] Reconciliación de builds registrados con servicios Docker reales.
 - [x] Documentación bilingüe y validaciones automáticas de calidad y seguridad.
-- [ ] Streaming estructurado de logs y cancelación de builds.
+
+### Control de ejecución y logs — siguiente incremento
+
+- [ ] Introducir migraciones versionadas para SQLite antes de añadir estados y eventos.
+- [ ] Extraer un `CommandRunner` portable que gestione procesos y grupos de procesos en Windows y
+  Linux.
+- [ ] Añadir los estados `CANCEL_REQUESTED`, `CANCELLING` y `CANCELLED` con cleanup idempotente y
+  conservación del motivo original.
+- [ ] Exponer la cancelación en API, CLI y dashboard, tanto para builds en cola como en ejecución.
+- [ ] Capturar `stdout` y `stderr` incrementalmente como eventos estructurados por build y etapa.
+- [ ] Publicar los eventos mediante Server-Sent Events con cursor de reconexión y conservar la
+  consulta de logs históricos.
+- [ ] Cubrir cancelación, timeouts y condiciones de carrera en checkout, instalación, pruebas,
+  healthcheck y cola.
+
+### Endurecimiento adicional del host
+
+- [ ] Ejecutar las pruebas sin Docker en una matriz CI con Windows y Linux.
+- [ ] Ejecutar el E2E real de Docker/Odoo mediante workflow manual y programación periódica en
+  Linux.
+- [ ] Añadir paginación, ordenamiento y filtros por estado, repositorio y fecha a la API de builds.
+- [ ] Añadir endpoints de liveness y readiness para configuración, SQLite, Docker y ejecutor.
+- [ ] Aplicar límites configurables de CPU, memoria, procesos y espacio disponible por build.
+- [ ] Permitir reintentar un build con sus mismos SHAs o crear otro desde las refs actuales sin
+  confundir ambos comportamientos.
+- [ ] Exportar un paquete de diagnóstico con logs, etapas, revisiones y Compose renderizado.
+- [ ] Exponer métricas opcionales de cola, builds, duración de etapas, fallos y cleanup.
+- [ ] Documentar ejecución como servicio en Windows y Linux, backup/restauración, troubleshooting y
+  la matriz de compatibilidad probada.
+- [x] Fijar la versión de Mermaid y añadir diagramas de secuencia para los flujos operativos.
+
+La fase 3 se considera completa cuando un operador puede observar y cancelar de forma segura un
+build real, recuperar el servicio y diagnosticar fallos en ambos sistemas soportados.
 
 ## Fase 4: integración externa — opcional
 

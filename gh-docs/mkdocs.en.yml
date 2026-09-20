@@ -60,7 +60,7 @@ markdown_extensions:
       alternate_style: true
 
 extra_javascript:
-  - https://unpkg.com/mermaid@11/dist/mermaid.min.js
+  - https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js
 
 extra:
   alternate:
@@ -79,12 +79,21 @@ nav:
       - Configuration: configuration.md
       - CLI: cli.md
       - HTTP API: api.md
-  - Operations:
+  - Technical design:
       - Architecture: architecture.md
+      - Domain model: domain-model.md
+      - Build pipeline: build-pipeline.md
+      - Concurrency and recovery: concurrency-recovery.md
+      - Ports and adapters: adapters.md
+  - Operations:
       - Operations and security: operations.md
+      - Troubleshooting and runbook: troubleshooting.md
+  - Development:
       - Development and tests: development.md
+      - CI/CD and security: ci-cd.md
   - Project:
       - Roadmap: roadmap.md
+      - Glossary: glossary.md
       - Decisions:
           - ADR 0001 — Initial architecture: decisions/0001-phase-0-architecture.md
           - ADR 0002 — Execution and recovery: decisions/0002-local-execution-and-recovery.md
