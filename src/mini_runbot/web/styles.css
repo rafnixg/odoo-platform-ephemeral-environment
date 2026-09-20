@@ -47,6 +47,8 @@ h3 { letter-spacing: -.02em; }
 .hero-meta span, .hero-meta strong { display: block; }
 .hero-meta span { color: var(--muted); font-size: 9px; letter-spacing: .17em; }
 .hero-meta strong { margin-top: 6px; font-size: 13px; }
+.hero-meta .timezone-caption { margin-top: 18px; }
+#timezone-label { color: var(--accent); }
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); overflow: hidden; }
 .metrics article { padding: 24px 25px; border-right: 1px solid var(--line); }
 .metrics article:last-child { border: 0; }

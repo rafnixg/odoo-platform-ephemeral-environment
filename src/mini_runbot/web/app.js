@@ -1,4 +1,10 @@
-const state = { builds: [], config: null, selectedId: null, timer: null };
+const state = {
+  builds: [],
+  config: null,
+  selectedId: null,
+  timer: null,
+  timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+};
 const activeStatuses = new Set(["new", "checking_out", "preparing", "installing", "testing", "starting", "destroying"]);
 const terminalStatuses = new Set(["failed", "expired", "destroyed"]);
 const $ = (selector) => document.querySelector(selector);
@@ -8,14 +14,28 @@ function escapeHtml(value = "") {
 }
 
 function formatStatus(status) { return status.replaceAll("_", " "); }
+function parseApiDate(value) {
+  if (!value) return null;
+  const normalized = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value) ? value : `${value}Z`;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 function formatDate(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(date);
+  const date = parseApiDate(value);
+  if (!date) return "—";
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: state.timeZone || undefined,
+  }).format(date);
 }
 function relativeTime(value) {
-  if (!value) return "—";
-  const seconds = Math.round((new Date(value).getTime() - Date.now()) / 1000);
+  const date = parseApiDate(value);
+  if (!date) return "—";
+  const seconds = Math.round((date.getTime() - Date.now()) / 1000);
   const abs = Math.abs(seconds);
   const unit = abs < 60 ? "second" : abs < 3600 ? "minute" : abs < 86400 ? "hour" : "day";
   const divisor = unit === "second" ? 1 : unit === "minute" ? 60 : unit === "hour" ? 3600 : 86400;
@@ -186,6 +206,12 @@ function updateDefaultRef() {
   if (option?.dataset.ref) $("#ref-input").value = option.dataset.ref;
 }
 
+function renderTimeZone() {
+  const label = $("#timezone-label");
+  label.textContent = state.timeZone || "Browser local time";
+  label.title = "Dates are converted from UTC to your browser's time zone.";
+}
+
 async function submitBuild(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
@@ -217,4 +243,5 @@ $("#build-list").addEventListener("keydown", (event) => { if (event.key === "Ent
 $("#build-drawer").addEventListener("click", (event) => { const action = event.target.closest("[data-action]"); if (!action) return; if (action.dataset.action === "close") closeDrawer(); if (action.dataset.action === "logs") loadLogs(action.dataset.id); if (action.dataset.action === "destroy") destroyBuild(action.dataset.id); });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !$("#create-dialog").open) closeDrawer(); });
 
+renderTimeZone();
 Promise.all([loadConfig(), refresh()]).catch((error) => { setConnection(false); showToast(error.message); });
