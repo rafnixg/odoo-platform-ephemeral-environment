@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from mini_runbot.adapters.persistence.sqlite import SqliteBuildRepository
@@ -21,7 +21,10 @@ def test_sqlite_create_read_list_destroy_and_preserve_logs(tmp_path: Path) -> No
     log_file = created.workspace_path / "logs" / "audit.log"
     log_file.write_text("retained evidence", encoding="utf-8")
 
-    assert manager.get(created.id).status == BuildStatus.NEW
+    persisted = manager.get(created.id)
+    assert persisted.status == BuildStatus.NEW
+    assert persisted.created_at.utcoffset() == timedelta(0)
+    assert persisted.expires_at.utcoffset() == timedelta(0)
     assert [item.id for item in manager.list()] == [created.id]
     assert (created.workspace_path / "runtime").is_dir()
 
@@ -38,7 +41,10 @@ def test_sqlite_create_read_list_destroy_and_preserve_logs(tmp_path: Path) -> No
         )
     )
     repository.update(created)
-    assert manager.get(created.id).stages[0].summary == "persisted"
+    persisted_stage = manager.get(created.id).stages[0]
+    assert persisted_stage.summary == "persisted"
+    assert persisted_stage.started_at is not None
+    assert persisted_stage.started_at.utcoffset() == timedelta(0)
     assert "retained evidence" in manager.read_logs(created.id, "audit")
 
     destroyed = manager.destroy(created.id)

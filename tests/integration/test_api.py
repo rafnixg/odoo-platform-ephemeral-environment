@@ -48,6 +48,8 @@ def test_api_create_get_list_and_destroy(tmp_path: Path, monkeypatch) -> None:
             assert response.status_code == 202
             build_id = response.json()["id"]
             assert response.json()["status"] == "new"
+            assert response.json()["created_at"].endswith("Z")
+            assert response.json()["expires_at"].endswith("Z")
             assert submitted == [build_id]
 
             assert client.get(f"/builds/{build_id}").json()["id"] == build_id
