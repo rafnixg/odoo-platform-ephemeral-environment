@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import (
@@ -224,10 +224,10 @@ class SqliteBuildRepository:
             requested_ref=row.requested_ref,
             repositories=[RepositoryRevision(**item) for item in row.repositories],
             modules=list(row.modules),
-            created_at=row.created_at,
-            started_at=row.started_at,
-            finished_at=row.finished_at,
-            expires_at=row.expires_at,
+            created_at=_as_utc(row.created_at),
+            started_at=_as_utc(row.started_at),
+            finished_at=_as_utc(row.finished_at),
+            expires_at=_as_utc(row.expires_at),
             host_port=row.host_port,
             database_name=row.database_name,
             compose_project_name=row.compose_project_name,
@@ -240,12 +240,12 @@ class SqliteBuildRepository:
                     name=item["name"],
                     status=StageStatus(item["status"]),
                     started_at=(
-                        datetime.fromisoformat(item["started_at"])
+                        _as_utc(datetime.fromisoformat(item["started_at"]))
                         if item.get("started_at")
                         else None
                     ),
                     finished_at=(
-                        datetime.fromisoformat(item["finished_at"])
+                        _as_utc(datetime.fromisoformat(item["finished_at"]))
                         if item.get("finished_at")
                         else None
                     ),
@@ -259,3 +259,12 @@ class SqliteBuildRepository:
             ],
             version=row.version,
         )
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    """Restore the UTC contract that SQLite's datetime adapter cannot retain."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
