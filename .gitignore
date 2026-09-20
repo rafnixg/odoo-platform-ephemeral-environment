@@ -12,4 +12,5 @@ builds/*
 *.db
 *.sqlite3
 .env
-
+config.local.yaml
+config.prod.yaml
