@@ -45,6 +45,12 @@ python -m mkdocs serve --config-file gh-docs\mkdocs.es.yml
 Los pull requests construyen ambos idiomas. Los pushes a `master` producen un único artefacto y lo
 despliegan mediante el environment `github-pages`.
 
+Antes del primer despliegue, un administrador debe seleccionar **GitHub Actions** en
+**Settings → Pages → Build and deployment → Source**. Para que el workflow Dependency Review pueda
+comparar manifests, también debe habilitar **Dependency graph** en **Settings → Security → Code
+security and analysis**. Son activaciones únicas del repositorio y no requieren añadir un PAT a los
+workflows.
+
 ## Convenciones
 
 Mantenga la dirección de dependencias, use `pathlib.Path`, preserve compatibilidad PowerShell y no

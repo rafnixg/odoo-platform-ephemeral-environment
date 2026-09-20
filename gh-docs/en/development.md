@@ -45,6 +45,11 @@ python -m mkdocs serve --config-file gh-docs\mkdocs.es.yml
 Pull requests build both languages. Pushes to `master` create one artifact and deploy it through the
 `github-pages` environment.
 
+Before the first deployment, an administrator must select **GitHub Actions** under
+**Settings → Pages → Build and deployment → Source**. The Dependency Review workflow also requires
+**Dependency graph** under **Settings → Security → Code security and analysis** to compare
+manifests. These are one-time repository settings and do not require adding a PAT to the workflows.
+
 ## Conventions
 
 Preserve dependency direction, use `pathlib.Path`, keep PowerShell compatibility, and never commit
