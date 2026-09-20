@@ -9,6 +9,7 @@ import uvicorn
 from rich.console import Console
 from rich.table import Table
 
+from mini_runbot.adapters.git.cli import is_remote_git_url, validate_remote_git_url
 from mini_runbot.bootstrap import create_manager
 from mini_runbot.cli.presentation import print_build, print_build_list, print_operation_result
 from mini_runbot.config import Settings
@@ -38,11 +39,15 @@ def create_build(
         modules=[item.strip() for item in modules.split(",") if item.strip()],
         ttl_seconds=ttl_seconds,
     )
-    manager = create_manager(docker=run)
-    build = manager.create(request)
-    if run:
-        build = manager.execute(build.id)
-    print_build(build, console, json_output=json_output)
+    try:
+        manager = create_manager(docker=run)
+        build = manager.create(request)
+        if run:
+            build = manager.execute(build.id)
+        print_build(build, console, json_output=json_output)
+    except MiniRunbotError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
 
 
 @build_app.command("get")
@@ -74,7 +79,11 @@ def destroy_build(
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
     try:
-        print_build(create_manager().destroy(build_id), console, json_output=json_output)
+        print_build(
+            create_manager(docker=True).destroy(build_id),
+            console,
+            json_output=json_output,
+        )
     except MiniRunbotError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
@@ -148,14 +157,37 @@ def doctor() -> None:
     git_path = shutil.which("git")
     checks.append(("git-executable", git_path is not None, git_path or "not found"))
     for alias, repository in settings.repositories.items():
-        repository_path = Path(repository.url).expanduser().resolve()
-        exists = repository_path.is_dir()
-        checks.append((f"repository-{alias}", exists, str(repository_path)))
-        if exists:
+        if is_remote_git_url(repository.url) or "://" in repository.url:
+            try:
+                validate_remote_git_url(repository.url)
+            except MiniRunbotError as exc:
+                checks.append((f"repository-{alias}-remote", False, str(exc)))
+                continue
             ok, detail = _command_version(
-                ["git", "-C", str(repository_path), "rev-parse", "--is-inside-work-tree"]
+                [
+                    "git",
+                    "ls-remote",
+                    "--exit-code",
+                    repository.url,
+                    repository.default_ref,
+                ]
             )
-            checks.append((f"repository-{alias}-git", ok and detail == "true", detail))
+            checks.append((f"repository-{alias}-remote", ok, detail))
+        else:
+            repository_path = Path(repository.url).expanduser().resolve()
+            exists = repository_path.is_dir()
+            checks.append((f"repository-{alias}", exists, str(repository_path)))
+            if exists:
+                ok, detail = _command_version(
+                    [
+                        "git",
+                        "-C",
+                        str(repository_path),
+                        "rev-parse",
+                        "--is-inside-work-tree",
+                    ]
+                )
+                checks.append((f"repository-{alias}-git", ok and detail == "true", detail))
     table = Table(title="Mini-Runbot doctor", header_style="bold dim")
     table.add_column("Check")
     table.add_column("Result")

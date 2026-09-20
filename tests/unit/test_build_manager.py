@@ -1,7 +1,11 @@
 from pathlib import Path
 
+import pytest
+
 from mini_runbot.application.build_manager import BuildManager
+from mini_runbot.config import Settings
 from mini_runbot.domain.enums import BuildStatus
+from mini_runbot.domain.errors import ConfigurationError
 from mini_runbot.domain.models import Build
 from mini_runbot.domain.validation import CreateBuildRequest
 
@@ -65,3 +69,15 @@ def test_ids_and_resource_names_are_unique_and_safe(tmp_path: Path) -> None:
     assert first.compose_project_name.replace("_", "").isalnum()
     assert first.workspace_path.parent == tmp_path.resolve()
 
+
+def test_configured_manager_rejects_create_without_repository_alias(tmp_path: Path) -> None:
+    manager = BuildManager(
+        MemoryRepository(),
+        SpyRuntime(),
+        tmp_path,
+        settings=Settings(builds_root=tmp_path),
+    )
+    request = CreateBuildRequest(repository="custom", ref="16.0", modules=["base"])
+
+    with pytest.raises(ConfigurationError, match="Repository alias is not allowed"):
+        manager.create(request)

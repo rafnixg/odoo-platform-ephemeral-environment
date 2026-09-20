@@ -11,7 +11,8 @@ max_concurrent_builds: 2
 retain_failed_runtime: false
 repositories:
   custom:
-    url: C:/path/to/allowed/custom-addons
+    # HTTPS/SSH remotes are fetched at the requested ref. Local Git paths also work.
+    url: https://github.com/OCA/e-commerce.git
     default_ref: "16.0"
     target: custom-addons
     addons_subpath: .

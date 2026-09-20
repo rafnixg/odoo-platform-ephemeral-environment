@@ -41,7 +41,7 @@ class BuildManager:
         build_id = f"build-{now:%Y%m%d}-{uuid4().hex[:12]}"
         workspace = self.builds_root / build_id
         repository_source = request.repository
-        if self.settings and self.settings.repositories:
+        if self.settings is not None:
             repository_source = self.settings.repository(request.repository, request.ref).url
         terminal = {BuildStatus.DESTROYED, BuildStatus.EXPIRED}
         used_ports = {

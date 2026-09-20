@@ -6,7 +6,8 @@ service for untrusted code.
 
 ## What works
 
-- Resolves requested Git refs to immutable SHAs and clones detached isolated checkouts.
+- Fetches configured local or HTTPS/SSH Git repositories, resolves requested refs to immutable
+  SHAs, and creates detached isolated checkouts.
 - Generates and validates an isolated Docker Compose project per build.
 - Runs database, installation, tests, server startup, and HTTP healthcheck as separate stages.
 - Persists state, revisions, timings, results, failures, and log paths in SQLite.
@@ -26,11 +27,13 @@ python -m pip install -e ".[dev]"
 ```
 
 Docker Desktop with Linux containers must be running. Copy `config.example.yaml`, configure
-only authorized local Git repositories, then set `MINI_RUNBOT_CONFIG` to its absolute path.
+only authorized Git repositories, then set `MINI_RUNBOT_CONFIG` to its absolute path.
 Python 3.13 can run the code, but Python 3.12 remains the target version.
 
-Repository inputs are aliases from configuration, never arbitrary API paths. Each entry can
-set `addons_subpath` when its Odoo modules are below the repository root.
+Repository inputs are aliases from configuration, never arbitrary API paths or URLs. Each entry
+can point to a local Git repository or an HTTPS/SSH remote and can set `addons_subpath` when its
+Odoo modules are below the repository root. Remote checkouts use a shallow fetch of only the
+requested ref; credentials must come from Git Credential Manager or SSH, never from the URL.
 
 ## CLI
 
