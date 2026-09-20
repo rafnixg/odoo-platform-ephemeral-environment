@@ -7,7 +7,13 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+from jinja2 import (
+    Environment,
+    FileSystemLoader,
+    PackageLoader,
+    StrictUndefined,
+    select_autoescape,
+)
 
 from mini_runbot.config import Settings
 from mini_runbot.domain.errors import RuntimeOperationError
@@ -18,9 +24,13 @@ from mini_runbot.ports.services import CommandResult, RuntimeInspection
 class DockerComposeRuntimeService:
     def __init__(self, settings: Settings, template_root: Path | None = None) -> None:
         self.settings = settings
-        root = template_root or Path(__file__).resolve().parents[4] / "templates"
+        loader = (
+            FileSystemLoader(template_root)
+            if template_root is not None
+            else PackageLoader("mini_runbot", "templates")
+        )
         self.environment = Environment(
-            loader=FileSystemLoader(root),
+            loader=loader,
             undefined=StrictUndefined,
             autoescape=select_autoescape(default=False),
             keep_trailing_newline=True,

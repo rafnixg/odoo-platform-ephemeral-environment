@@ -29,6 +29,9 @@ distributed infrastructure.
 - [x] Opt-in audit and log retention/deletion policy.
 - [x] Recovery reconciliation between registered builds and real Docker services.
 - [x] Bilingual documentation and automated quality and security checks.
+- [x] Self-contained PyPI application with runtime resources, `mini-runbot init`, and wheel checks.
+- [x] Tag-based publication workflow using PyPI Trusted Publishing.
+- [ ] Choose a license, configure the PyPI publisher, and complete the first release.
 
 ### Execution control and logs — next increment
 

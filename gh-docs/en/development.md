@@ -26,6 +26,8 @@ The following commands use `/` and work unchanged in PowerShell and Bash:
 python -m pytest -m "not docker"
 python -m ruff check .
 node --check src/mini_runbot/web/app.js
+python -m build
+python scripts/check_distribution.py dist
 python scripts/check_docs.py
 python -m mkdocs build --strict --config-file gh-docs/mkdocs.es.yml --site-dir ../site
 python -m mkdocs build --strict --config-file gh-docs/mkdocs.en.yml --site-dir ../site/en

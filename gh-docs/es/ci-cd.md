@@ -7,10 +7,11 @@ siendo explícitas porque requieren daemon, imágenes y más tiempo que el CI b�
 
 | Workflow | Eventos | Responsabilidad |
 | --- | --- | --- |
-| `ci.yml` | Push y PR a `master` | Ruff, pytest sin Docker, sintaxis JavaScript y whitespace. |
+| `ci.yml` | Push y PR a `master` | Ruff, pytest sin Docker, JavaScript, wheel/sdist y whitespace. |
 | `docs.yml` | Cambios documentales, push/PR y manual | Paridad bilingüe, builds estrictos y despliegue Pages. |
 | `codeql.yml` | Push, PR y lunes programado | Análisis de Python, JavaScript/TypeScript y Actions. |
 | `dependency-review.yml` | PR a `master` | Rechaza nuevas dependencias con vulnerabilidad alta o crítica. |
+| `publish.yml` | Tag `v*` | Verifica versión, pruebas y wheel; publica en PyPI mediante OIDC. |
 
 Todos usan permisos mínimos y acciones compatibles con el runtime Node actual de GitHub Actions.
 El CI sin Docker corre hoy en Ubuntu; la matriz Windows/Linux está planificada en el
@@ -40,12 +41,29 @@ Dependabot revisa semanalmente:
 Una actualización mayor debe revisarse manualmente por compatibilidad. Que un PR provenga de
 Dependabot no sustituye CI, revisión de changelog ni validación de comportamiento.
 
+## Publicación en PyPI
+
+El proyecto se distribuye como aplicación CLI. El workflow solo acepta tags que coincidan
+exactamente con `v<project.version>`, construye wheel y sdist en aislamiento y comprueba que el
+entry point, dashboard, plantilla Compose y ejemplo de configuración estén incluidos.
+
+Antes de la primera publicación, un administrador debe:
+
+1. elegir y añadir la licencia del proyecto;
+2. crear el environment protegido `pypi` en GitHub;
+3. configurar en PyPI un Trusted Publisher para este repositorio y workflow;
+4. revisar la versión y crear el tag, por ejemplo `v0.2.0`.
+
+Trusted Publishing usa OIDC y evita almacenar un token PyPI en GitHub Secrets.
+
 ## Comprobaciones locales equivalentes
 
 ```console
 python -m pytest -m "not docker"
 python -m ruff check .
 node --check src/mini_runbot/web/app.js
+python -m build
+python scripts/check_distribution.py dist
 python scripts/check_docs.py
 python -m mkdocs build --strict --config-file gh-docs/mkdocs.es.yml --site-dir ../site
 python -m mkdocs build --strict --config-file gh-docs/mkdocs.en.yml --site-dir ../site/en
@@ -65,3 +83,4 @@ git diff --check
 - [Workflows](https://github.com/rafnixg/odoo-platform-ephemeral-environment/tree/master/.github/workflows)
 - [Dependabot](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/.github/dependabot.yml)
 - [Validador bilingüe](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/scripts/check_docs.py)
+- [Validador de distribución](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/scripts/check_distribution.py)

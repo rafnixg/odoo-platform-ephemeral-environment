@@ -7,10 +7,11 @@ because they require a daemon, images, and more time than the baseline CI job.
 
 | Workflow | Events | Responsibility |
 | --- | --- | --- |
-| `ci.yml` | Push and PR to `master` | Ruff, non-Docker pytest, JavaScript syntax, and whitespace. |
+| `ci.yml` | Push and PR to `master` | Ruff, non-Docker pytest, JavaScript, wheel/sdist, and whitespace. |
 | `docs.yml` | Documentation changes, push/PR, and manual | Translation parity, strict builds, and Pages deployment. |
 | `codeql.yml` | Push, PR, and scheduled Monday run | Python, JavaScript/TypeScript, and Actions analysis. |
 | `dependency-review.yml` | PR to `master` | Rejects new dependencies with high or critical vulnerabilities. |
+| `publish.yml` | `v*` tag | Verifies version, tests, and wheel; publishes to PyPI through OIDC. |
 
 All use minimal permissions and actions compatible with GitHub Actions' current Node runtime. The
 non-Docker CI currently runs on Ubuntu; a Windows/Linux matrix is planned in the
@@ -40,12 +41,29 @@ Dependabot checks weekly:
 Major updates require manual compatibility review. A Dependabot author does not replace CI,
 changelog review, or behavior validation.
 
+## Publishing to PyPI
+
+The project is distributed as a CLI application. The workflow only accepts tags that exactly match
+`v<project.version>`, builds the wheel and sdist in isolation, and verifies that the entry point,
+dashboard, Compose template, and example configuration are included.
+
+Before the first publication, an administrator must:
+
+1. choose and add the project license;
+2. create the protected `pypi` environment in GitHub;
+3. configure a PyPI Trusted Publisher for this repository and workflow;
+4. review the version and create the tag, for example `v0.2.0`.
+
+Trusted Publishing uses OIDC and avoids storing a PyPI token in GitHub Secrets.
+
 ## Equivalent local checks
 
 ```console
 python -m pytest -m "not docker"
 python -m ruff check .
 node --check src/mini_runbot/web/app.js
+python -m build
+python scripts/check_distribution.py dist
 python scripts/check_docs.py
 python -m mkdocs build --strict --config-file gh-docs/mkdocs.es.yml --site-dir ../site
 python -m mkdocs build --strict --config-file gh-docs/mkdocs.en.yml --site-dir ../site/en
@@ -64,3 +82,4 @@ git diff --check
 - [Workflows](https://github.com/rafnixg/odoo-platform-ephemeral-environment/tree/master/.github/workflows)
 - [Dependabot](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/.github/dependabot.yml)
 - [Translation checker](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/scripts/check_docs.py)
+- [Distribution checker](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/scripts/check_distribution.py)

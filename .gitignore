@@ -9,6 +9,8 @@ __pycache__/
 .coverage
 htmlcov/
 site/
+/build/
+/dist/
 builds/*
 !builds/.gitkeep
 *.db

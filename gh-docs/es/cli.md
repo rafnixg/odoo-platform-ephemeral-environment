@@ -2,6 +2,19 @@
 
 La CLI y la API usan el mismo `BuildManager`, las mismas validaciones y las mismas transiciones.
 
+## Inicializar configuración
+
+```console
+mini-runbot init
+mini-runbot init --defaults
+mini-runbot init --output otra-configuracion.yaml
+```
+
+Sin `--defaults`, el asistente pregunta por base SQLite, workspaces, imágenes, puertos, timeouts,
+concurrencia, cleanup, retención y hasta diez repositorios permitidos. La escritura es exclusiva:
+si el destino existe, el comando termina sin modificarlo. Al finalizar muestra cómo exportar
+`MINI_RUNBOT_CONFIG` en PowerShell y Bash.
+
 ## Builds
 
 Los comandos de una línea funcionan igual en PowerShell y Bash:

@@ -37,25 +37,41 @@ two differ, the repository documentation and implementation are authoritative.
 Python 3.12, Git, and Docker Compose v2 are required. On Windows, use Docker Desktop with Linux
 containers; on Linux, use Docker Engine with the Compose v2 plugin.
 
-### Windows · PowerShell
+### PyPI application
+
+Mini-Runbot is packaged as a CLI application. After the first PyPI release, install it in an
+isolated environment with `pipx`:
+
+```console
+pipx install mini-runbot
+mini-runbot init
+```
+
+Until that release, clone the repository and run `pipx install .`, or use the development setup
+below. `init` asks for runtime and allowed-repository settings and refuses to overwrite an existing
+`config.local.yaml`. Use `mini-runbot init --defaults` for the bundled example values.
+
+### Development installation
+
+#### Windows · PowerShell
 
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
-Copy-Item config.example.yaml config.local.yaml
+mini-runbot init
 $env:MINI_RUNBOT_CONFIG = (Resolve-Path config.local.yaml)
 mini-runbot doctor
 mini-runbot serve --reload
 ```
 
-### Linux · Bash
+#### Linux · Bash
 
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e ".[dev]"
-cp config.example.yaml config.local.yaml
+mini-runbot init
 export MINI_RUNBOT_CONFIG="$(realpath config.local.yaml)"
 mini-runbot doctor
 mini-runbot serve --reload
@@ -79,6 +95,8 @@ python -m pip install -e ".[dev,docs]"
 python -m pytest -m "not docker"
 python -m ruff check .
 node --check src/mini_runbot/web/app.js
+python -m build
+python scripts/check_distribution.py dist
 python scripts/check_docs.py
 python -m mkdocs build --strict --config-file gh-docs/mkdocs.es.yml --site-dir ../site
 python -m mkdocs build --strict --config-file gh-docs/mkdocs.en.yml --site-dir ../site/en

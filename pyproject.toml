@@ -8,6 +8,19 @@ version = "0.2.0"
 description = "A small, local build orchestrator proof of concept for Odoo 16"
 readme = "README.md"
 requires-python = ">=3.12"
+authors = [{ name = "rafnixg" }]
+keywords = ["odoo", "docker", "runbot", "testing", "ephemeral-environments"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Framework :: FastAPI",
+  "Intended Audience :: Developers",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Testing",
+]
 dependencies = [
   "fastapi>=0.115,<1",
   "jinja2>=3.1,<4",
@@ -21,6 +34,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "build>=1,<2",
   "httpx>=0.27,<1",
   "pytest>=8,<9",
   "pytest-asyncio>=0.24,<1",
@@ -34,11 +48,23 @@ docs = [
 [project.scripts]
 mini-runbot = "mini_runbot.cli.main:app"
 
+[project.urls]
+Documentation = "https://rafnixg.github.io/odoo-platform-ephemeral-environment/"
+Repository = "https://github.com/rafnixg/odoo-platform-ephemeral-environment"
+Issues = "https://github.com/rafnixg/odoo-platform-ephemeral-environment/issues"
+DeepWiki = "https://deepwiki.com/rafnixg/odoo-platform-ephemeral-environment"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-mini_runbot = ["web/*.html", "web/*.css", "web/*.js"]
+mini_runbot = [
+  "resources/*.yaml",
+  "templates/*.j2",
+  "web/*.html",
+  "web/*.css",
+  "web/*.js",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

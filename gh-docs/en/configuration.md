@@ -3,6 +3,9 @@
 Mini-Runbot loads YAML only when `MINI_RUNBOT_CONFIG` points to an existing file. Supported
 environment variables take precedence over YAML.
 
+Use `mini-runbot init` to generate this file interactively or `mini-runbot init --defaults` to copy
+the bundled example values. Neither variant overwrites an existing destination.
+
 ## Example
 
 ```yaml

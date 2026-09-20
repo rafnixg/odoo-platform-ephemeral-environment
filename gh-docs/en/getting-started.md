@@ -23,6 +23,33 @@ Mini-Runbot uses the same code and lifecycle on both systems:
 
 ## Installation
 
+### Isolated application with pipx
+
+After the first PyPI publication, the recommended installation on both systems will be:
+
+=== "Windows · PowerShell"
+
+    ```powershell
+    py -3.12 -m pip install --user pipx
+    py -3.12 -m pipx ensurepath
+    pipx install mini-runbot
+    mini-runbot init
+    ```
+
+=== "Linux · Bash"
+
+    ```bash
+    python3.12 -m pip install --user pipx
+    python3.12 -m pipx ensurepath
+    pipx install mini-runbot
+    mini-runbot init
+    ```
+
+While that release is being prepared, clone the repository and run `pipx install .` from its root.
+`pipx` keeps the application and its dependencies separate from the system Python installation.
+
+### Development environment
+
 From the repository root:
 
 === "Windows · PowerShell"
@@ -41,13 +68,26 @@ From the repository root:
     python -m pip install -e ".[dev]"
     ```
 
-Copy `config.example.yaml` to a local file ignored by Git, configure the allowed repositories, and
-export its absolute path:
+## Create the configuration
+
+The wizard starts from the example bundled with the application, asks about runtime, concurrency,
+retention, and allowed repositories, and creates `config.local.yaml` only when it does not exist:
+
+```console
+mini-runbot init
+```
+
+To accept all `config.example.yaml` values without prompts:
+
+```console
+mini-runbot init --defaults
+```
+
+Then export its absolute path:
 
 === "Windows · PowerShell"
 
     ```powershell
-    Copy-Item config.example.yaml config.local.yaml
     $env:MINI_RUNBOT_CONFIG = (Resolve-Path config.local.yaml).Path
     mini-runbot doctor
     ```
@@ -55,7 +95,6 @@ export its absolute path:
 === "Linux · Bash"
 
     ```bash
-    cp config.example.yaml config.local.yaml
     export MINI_RUNBOT_CONFIG="$(realpath config.local.yaml)"
     mini-runbot doctor
     ```

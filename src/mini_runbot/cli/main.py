@@ -12,6 +12,12 @@ from rich.table import Table
 
 from mini_runbot.adapters.git.cli import is_remote_git_url, validate_remote_git_url
 from mini_runbot.bootstrap import create_manager
+from mini_runbot.cli.init_config import (
+    collect_config,
+    load_example_config,
+    render_config,
+    write_config_exclusive,
+)
 from mini_runbot.cli.presentation import print_build, print_build_list, print_operation_result
 from mini_runbot.config import Settings
 from mini_runbot.domain.errors import BuildNotFoundError, MiniRunbotError
@@ -21,6 +27,46 @@ app = typer.Typer(help="Local Mini-Runbot proof of concept.")
 build_app = typer.Typer(help="Manage builds.")
 app.add_typer(build_app, name="build")
 console = Console()
+
+
+@app.command("init")
+def init_config(
+    output: Annotated[
+        Path,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Configuration file to create.",
+            dir_okay=False,
+        ),
+    ] = Path("config.local.yaml"),
+    defaults: Annotated[
+        bool,
+        typer.Option(
+            "--defaults",
+            help="Create the file from bundled defaults without interactive prompts.",
+        ),
+    ] = False,
+) -> None:
+    """Create a local configuration without overwriting an existing file."""
+    destination = output.expanduser().resolve()
+    if destination.exists():
+        typer.echo(f"Configuration already exists: {destination}", err=True)
+        raise typer.Exit(1)
+    config = load_example_config()
+    if not defaults:
+        config = collect_config(config)
+    try:
+        created = write_config_exclusive(destination, render_config(config))
+    except (FileExistsError, OSError, ValueError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(f"Created configuration: {created}")
+    typer.echo("PowerShell:")
+    typer.echo(f"  $env:MINI_RUNBOT_CONFIG = '{created}'")
+    typer.echo("Bash:")
+    typer.echo(f"  export MINI_RUNBOT_CONFIG='{created.as_posix()}'")
+    typer.echo("Next: mini-runbot doctor")
 
 
 @build_app.command("create")

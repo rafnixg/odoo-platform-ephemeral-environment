@@ -31,5 +31,9 @@ jobs:
         run: python -m pytest -m "not docker"
       - name: Check frontend JavaScript
         run: node --check src/mini_runbot/web/app.js
+      - name: Build Python distributions
+        run: python -m build
+      - name: Verify wheel contents
+        run: python scripts/check_distribution.py dist
       - name: Check whitespace errors
         run: git diff --check

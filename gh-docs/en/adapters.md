@@ -39,8 +39,8 @@ flowchart TB
 
 ## Docker Compose
 
-The adapter renders `templates/compose.yaml.j2`, validates it, and executes stages with process
-argument lists rather than shell-built commands.
+The adapter renders the packaged `mini_runbot/templates/compose.yaml.j2` template, validates it,
+and executes stages with process argument lists rather than shell-built commands.
 
 Each build receives its own project, network, database, PostgreSQL volume, filestore, and port.
 Repositories are mounted read-only, and the preview is published only on `127.0.0.1`.
@@ -80,4 +80,4 @@ path safety; it does not represent a real Odoo execution.
 - [Service contracts](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/src/mini_runbot/ports/services.py)
 - [Persistence contracts](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/src/mini_runbot/ports/repositories.py)
 - [Bootstrap](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/src/mini_runbot/bootstrap.py)
-- [Compose template](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/templates/compose.yaml.j2)
+- [Compose template](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/src/mini_runbot/templates/compose.yaml.j2)

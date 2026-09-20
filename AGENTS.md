@@ -50,7 +50,7 @@ python -m pip install -e ".[dev]"
 - `src/mini_runbot/api` and `src/mini_runbot/cli`: transport layers over the same application
   behavior.
 - `src/mini_runbot/web`: dashboard assets served directly by FastAPI.
-- `templates`: generated Docker Compose runtime definitions.
+- `src/mini_runbot/templates`: packaged Docker Compose runtime definitions.
 - `tests/unit`: fast isolated tests.
 - `tests/integration`: local integration tests that normally do not require Docker.
 - `tests/e2e`: real lifecycle coverage; tests marked `docker` require a working daemon.

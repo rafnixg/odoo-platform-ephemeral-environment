@@ -38,7 +38,8 @@ flowchart TB
 
 ## Docker Compose
 
-El adaptador renderiza `templates/compose.yaml.j2`, valida el resultado y ejecuta las etapas con
+El adaptador renderiza la plantilla empaquetada `mini_runbot/templates/compose.yaml.j2`, valida el
+resultado y ejecuta las etapas con
 argumentos de proceso, sin construir comandos mediante un shell.
 
 Cada build obtiene proyecto, red, base de datos, volumen PostgreSQL, filestore y puerto propios.
@@ -79,4 +80,4 @@ seguridad de rutas; no representa una ejecución Odoo real.
 - [Contratos de servicios](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/src/mini_runbot/ports/services.py)
 - [Contratos de persistencia](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/src/mini_runbot/ports/repositories.py)
 - [Bootstrap](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/src/mini_runbot/bootstrap.py)
-- [Plantilla Compose](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/templates/compose.yaml.j2)
+- [Plantilla Compose](https://github.com/rafnixg/odoo-platform-ephemeral-environment/blob/master/src/mini_runbot/templates/compose.yaml.j2)

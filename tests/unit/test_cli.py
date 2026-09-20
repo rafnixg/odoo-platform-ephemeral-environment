@@ -1,8 +1,60 @@
+from pathlib import Path
+
+import yaml
 from typer.testing import CliRunner
 
 from mini_runbot.cli import main
 from mini_runbot.domain.errors import ConfigurationError
 from mini_runbot.domain.validation import CreateBuildRequest
+
+
+def test_init_with_defaults_creates_loadable_config(tmp_path: Path) -> None:
+    output = tmp_path / "config.local.yaml"
+
+    result = CliRunner().invoke(
+        main.app,
+        ["init", "--defaults", "--output", str(output)],
+    )
+
+    assert result.exit_code == 0, result.output
+    loaded = yaml.safe_load(output.read_text(encoding="utf-8"))
+    assert loaded["database_url"] == "sqlite:///./mini_runbot.db"
+    assert loaded["repositories"]["custom"]["default_ref"] == "16.0"
+    assert "PowerShell" in result.output
+    assert "Bash" in result.output
+    assert "mini-runbot doctor" in result.output
+
+
+def test_init_interactive_accepts_example_defaults(tmp_path: Path) -> None:
+    output = tmp_path / "config.local.yaml"
+
+    result = CliRunner().invoke(
+        main.app,
+        ["init", "--output", str(output)],
+        input="\n" * 30,
+    )
+
+    assert result.exit_code == 0, result.output
+    loaded = yaml.safe_load(output.read_text(encoding="utf-8"))
+    assert loaded["port_start"] == 18_000
+    assert loaded["port_end"] == 19_999
+    assert loaded["load_demo_data"] is True
+    assert loaded["retain_failed_runtime"] is False
+    assert list(loaded["repositories"]) == ["custom"]
+
+
+def test_init_refuses_to_overwrite_existing_config(tmp_path: Path) -> None:
+    output = tmp_path / "config.local.yaml"
+    output.write_text("owned: true\n", encoding="utf-8")
+
+    result = CliRunner().invoke(
+        main.app,
+        ["init", "--defaults", "--output", str(output)],
+    )
+
+    assert result.exit_code == 1
+    assert "already exists" in result.output
+    assert output.read_text(encoding="utf-8") == "owned: true\n"
 
 
 def test_destroy_uses_docker_runtime(monkeypatch) -> None:
