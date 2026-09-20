@@ -21,6 +21,8 @@ def create_manager(settings: Settings | None = None, *, docker: bool = False) ->
         runtime,
         settings.builds_root,
         git=GitCliService(settings) if settings.repositories else None,
-        port_allocator=SocketPortAllocator(settings.port_start, settings.port_end),
+        port_allocator=SocketPortAllocator(
+            settings.port_start, settings.port_end, lease_store=repository
+        ),
         settings=settings,
     )

@@ -31,6 +31,7 @@ class Settings:
     command_timeout_seconds: int = 900
     health_timeout_seconds: int = 120
     max_concurrent_builds: int = 2
+    cleanup_interval_seconds: int = 0
     retain_failed_runtime: bool = False
 
     @classmethod
@@ -70,6 +71,25 @@ class Settings:
             if subpath.is_absolute() or ".." in subpath.parts:
                 raise ConfigurationError(f"Invalid addons_subpath for repository {alias}")
 
+        targets: dict[str, str] = {}
+        for alias, repository in repositories.items():
+            previous = targets.get(repository.target)
+            if previous is not None:
+                raise ConfigurationError(
+                    f"Repositories {previous} and {alias} use the same target: "
+                    f"{repository.target}"
+                )
+            targets[repository.target] = alias
+
+        cleanup_interval_seconds = int(
+            os.getenv(
+                "MINI_RUNBOT_CLEANUP_INTERVAL_SECONDS",
+                str(raw.get("cleanup_interval_seconds", 0)),
+            )
+        )
+        if cleanup_interval_seconds < 0:
+            raise ConfigurationError("cleanup_interval_seconds must be zero or positive")
+
         return cls(
             database_url=os.getenv(
                 "MINI_RUNBOT_DATABASE_URL",
@@ -88,6 +108,7 @@ class Settings:
             command_timeout_seconds=int(raw.get("command_timeout_seconds", 900)),
             health_timeout_seconds=int(raw.get("health_timeout_seconds", 120)),
             max_concurrent_builds=int(raw.get("max_concurrent_builds", 2)),
+            cleanup_interval_seconds=cleanup_interval_seconds,
             retain_failed_runtime=bool(raw.get("retain_failed_runtime", False)),
         )
 

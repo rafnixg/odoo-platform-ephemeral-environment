@@ -75,9 +75,9 @@
     <dialog id="create-dialog" class="modal">
       <form id="create-form" method="dialog">
         <div class="modal-heading"><div><p class="eyebrow">NEW EXECUTION</p><h2>Create build</h2></div><button class="icon-button" type="button" data-modal-close aria-label="Close">×</button></div>
-        <p class="form-intro">Resolve an allowed repository revision, install its modules, run tests, and publish a temporary preview.</p>
-        <label>Repository<select id="repository-input" name="repository" required></select></label>
-        <label>Git reference<input id="ref-input" name="ref" required maxlength="200" placeholder="feature/payment-fix"></label>
+        <p class="form-intro">Resolve one or more allowed repository revisions, install their modules, run tests, and publish a temporary preview.</p>
+        <label>Repositories<select id="repository-input" name="repository" required multiple size="4"></select><small>Select multiple repositories with Ctrl/Cmd + click. Their configured priority controls the addons path.</small></label>
+        <label>Git reference<input id="ref-input" name="ref" required maxlength="200" placeholder="feature/payment-fix"><small>The dashboard applies this reference to every selected repository.</small></label>
         <label>Odoo modules<input name="modules" required placeholder="custom_sale, custom_account"><small>Comma-separated module technical names</small></label>
         <label>Lifetime<select name="ttl_seconds"><option value="3600">1 hour</option><option value="14400" selected>4 hours</option><option value="28800">8 hours</option><option value="86400">24 hours</option></select></label>
         <div id="form-error" class="form-error" hidden></div>

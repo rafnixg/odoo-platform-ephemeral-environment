@@ -39,10 +39,10 @@ class Ports:
     def __init__(self) -> None:
         self.released: list[int] = []
 
-    def allocate(self, excluded: set[int] | None = None) -> int:
+    def allocate(self, build_id: str, excluded: set[int] | None = None) -> int:
         return 18123
 
-    def release(self, port: int) -> None:
+    def release(self, build_id: str, port: int) -> None:
         self.released.append(port)
 
 

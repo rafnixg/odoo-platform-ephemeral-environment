@@ -122,6 +122,52 @@ def test_public_config_does_not_expose_repository_paths(tmp_path: Path, monkeypa
 
     assert response.status_code == 200
     assert response.json()["repositories"] == [
-        {"alias": "custom", "default_ref": "16.0", "allow_request_ref": True}
+        {
+            "alias": "custom",
+            "default_ref": "16.0",
+            "allow_request_ref": True,
+            "addons_priority": 100,
+        }
     ]
     assert str(source) not in response.text
+
+
+def test_api_accepts_multiple_repositories(tmp_path: Path) -> None:
+    repository = SqliteBuildRepository(f"sqlite:///{tmp_path / 'multi-api.db'}")
+    repository.create_schema()
+    builds_root = tmp_path / "builds"
+    manager = BuildManager(repository, LocalRuntimeService(builds_root), builds_root)
+    app.dependency_overrides[get_manager] = lambda: manager
+
+    class RecordingExecutor:
+        def submit(self, build_id: str) -> None:
+            pass
+
+        def is_active(self, build_id: str) -> bool:
+            return False
+
+    app.dependency_overrides[get_executor] = RecordingExecutor
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/builds",
+                json={
+                    "repositories": [
+                        {"repository": "oca", "ref": "16.0"},
+                        {"repository": "custom", "ref": "feature/api"},
+                    ],
+                    "modules": ["demo_module"],
+                },
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    assert [item["name"] for item in response.json()["repositories"]] == [
+        "oca",
+        "custom",
+    ]
+    assert [item["requested_ref"] for item in response.json()["repositories"]] == [
+        "16.0",
+        "feature/api",
+    ]

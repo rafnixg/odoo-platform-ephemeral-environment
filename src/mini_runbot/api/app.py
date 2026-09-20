@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
@@ -9,12 +10,29 @@ from fastapi.staticfiles import StaticFiles
 from mini_runbot.api.schemas import BuildLogsResponse, BuildResponse, PublicConfigResponse
 from mini_runbot.application.build_manager import BuildManager
 from mini_runbot.application.executor import LocalBuildExecutor
+from mini_runbot.application.scheduler import CleanupScheduler
 from mini_runbot.bootstrap import create_manager
 from mini_runbot.config import Settings
 from mini_runbot.domain.errors import BuildNotFoundError, MiniRunbotError
 from mini_runbot.domain.validation import CreateBuildRequest
 
-app = FastAPI(title="Mini-Runbot", version="0.2.0")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    settings = Settings.from_environment()
+    scheduler: CleanupScheduler | None = None
+    if settings.cleanup_interval_seconds > 0:
+        scheduler = CleanupScheduler(get_manager(), settings.cleanup_interval_seconds)
+        scheduler.start()
+    application.state.cleanup_scheduler = scheduler
+    try:
+        yield
+    finally:
+        if scheduler is not None:
+            scheduler.stop()
+
+
+app = FastAPI(title="Mini-Runbot", version="0.2.0", lifespan=lifespan)
 web_root = Path(__file__).resolve().parents[1] / "web"
 app.mount("/assets", StaticFiles(directory=web_root), name="assets")
 
@@ -50,6 +68,7 @@ def public_config() -> PublicConfigResponse:
                 "alias": alias,
                 "default_ref": repository.default_ref,
                 "allow_request_ref": repository.allow_request_ref,
+                "addons_priority": repository.addons_priority,
             }
             for alias, repository in sorted(settings.repositories.items())
         ],

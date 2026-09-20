@@ -48,3 +48,53 @@ def test_render_uses_isolated_names_port_and_read_only_mount(tmp_path: Path) -> 
     assert "--database_host" not in rendered
     assert f"{checkout.as_posix()}:/mnt/addons/custom:ro" in rendered.replace("\\\\", "/")
     assert "/var/run/docker.sock" not in rendered
+
+
+def test_addons_path_orders_multiple_repositories_by_priority(tmp_path: Path) -> None:
+    root = tmp_path / "builds"
+    workspace = root / "build-multi"
+    oca = workspace / "sources" / "oca"
+    custom = workspace / "sources" / "custom"
+    oca.mkdir(parents=True)
+    custom.mkdir()
+    now = datetime.now(UTC)
+    build = Build(
+        id="build-multi",
+        status=BuildStatus.PREPARING,
+        requested_ref="16.0",
+        repositories=[
+            RepositoryRevision(
+                name="oca",
+                source=str(oca),
+                requested_ref="16.0",
+                commit_sha="a" * 40,
+                checkout_path=str(oca),
+                addons_priority=200,
+            ),
+            RepositoryRevision(
+                name="custom",
+                source=str(custom),
+                requested_ref="feature/multi",
+                commit_sha="b" * 40,
+                checkout_path=str(custom),
+                addons_priority=100,
+            ),
+        ],
+        modules=["demo_module"],
+        created_at=now,
+        expires_at=now + timedelta(hours=1),
+        workspace_path=workspace,
+        compose_project_name="build_multi",
+        database_name="build_multi",
+        host_port=18124,
+    )
+    runtime = DockerComposeRuntimeService(Settings(builds_root=root))
+    runtime.prepare(build.id, workspace)
+
+    runtime.render(build)
+
+    rendered = (workspace / "runtime" / "compose.yaml").read_text(encoding="utf-8")
+    assert rendered.index("/mnt/addons/custom") < rendered.index("/mnt/addons/oca")
+    assert DockerComposeRuntimeService._addons_path(build).endswith(
+        "/mnt/addons/custom,/mnt/addons/oca"
+    )

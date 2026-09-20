@@ -3,11 +3,11 @@ from pathlib import Path
 import pytest
 
 from mini_runbot.application.build_manager import BuildManager
-from mini_runbot.config import Settings
+from mini_runbot.config import RepositoryConfig, Settings
 from mini_runbot.domain.enums import BuildStatus
 from mini_runbot.domain.errors import ConfigurationError
 from mini_runbot.domain.models import Build
-from mini_runbot.domain.validation import CreateBuildRequest
+from mini_runbot.domain.validation import CreateBuildRequest, RequestedRepository
 
 
 class MemoryRepository:
@@ -81,3 +81,43 @@ def test_configured_manager_rejects_create_without_repository_alias(tmp_path: Pa
 
     with pytest.raises(ConfigurationError, match="Repository alias is not allowed"):
         manager.create(request)
+
+
+def test_create_persists_multiple_configured_repositories(tmp_path: Path) -> None:
+    settings = Settings(
+        builds_root=tmp_path,
+        repositories={
+            "oca": RepositoryConfig(
+                url="https://github.com/OCA/e-commerce.git",
+                target="oca-ecommerce",
+                addons_priority=200,
+            ),
+            "custom": RepositoryConfig(
+                url="https://github.com/example/custom.git",
+                target="custom-addons",
+                addons_priority=100,
+            ),
+        },
+    )
+    manager = BuildManager(
+        MemoryRepository(), SpyRuntime(), tmp_path, settings=settings
+    )
+
+    build = manager.create(
+        CreateBuildRequest(
+            repositories=[
+                RequestedRepository(repository="oca", ref="16.0"),
+                RequestedRepository(repository="custom", ref="feature/multi"),
+            ],
+            modules=["website_sale_hide_price"],
+        )
+    )
+
+    actual = [
+        (item.name, item.requested_ref, item.addons_priority)
+        for item in build.repositories
+    ]
+    assert actual == [
+        ("oca", "16.0", 200),
+        ("custom", "feature/multi", 100),
+    ]

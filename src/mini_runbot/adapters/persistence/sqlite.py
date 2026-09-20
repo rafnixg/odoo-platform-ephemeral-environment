@@ -3,7 +3,20 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from sqlalchemy import JSON, DateTime, Integer, String, create_engine, inspect, select, text, update
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Integer,
+    String,
+    create_engine,
+    delete,
+    inspect,
+    select,
+    text,
+    update,
+)
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from mini_runbot.domain.enums import BuildStatus, StageStatus
@@ -38,6 +51,13 @@ class BuildRow(Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
 
+class PortLeaseRow(Base):
+    __tablename__ = "port_leases"
+
+    port: Mapped[int] = mapped_column(Integer, primary_key=True)
+    build_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+
+
 class SqliteBuildRepository:
     def __init__(self, database_url: str) -> None:
         connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
@@ -52,6 +72,7 @@ class SqliteBuildRepository:
                 connection.execute(
                     text("ALTER TABLE builds ADD COLUMN stages JSON NOT NULL DEFAULT '[]'")
                 )
+        self._seed_port_leases()
 
     def add(self, build: Build) -> None:
         with self.sessions.begin() as session:
@@ -80,6 +101,65 @@ class SqliteBuildRepository:
             if result.rowcount != 1:
                 raise ConcurrentUpdateError(f"Build {build.id} changed concurrently")
         build.version += 1
+
+    def try_acquire_port(self, build_id: str, port: int) -> bool:
+        try:
+            with self.sessions.begin() as session:
+                existing = session.scalar(
+                    select(PortLeaseRow).where(PortLeaseRow.build_id == build_id)
+                )
+                if existing is not None:
+                    return existing.port == port
+                session.add(PortLeaseRow(port=port, build_id=build_id))
+                session.flush()
+        except IntegrityError:
+            return False
+        return True
+
+    def release_port(self, build_id: str, port: int) -> None:
+        with self.sessions.begin() as session:
+            session.execute(
+                delete(PortLeaseRow).where(
+                    PortLeaseRow.port == port, PortLeaseRow.build_id == build_id
+                )
+            )
+
+    def reconcile_port_leases(self) -> list[int]:
+        terminal = {BuildStatus.DESTROYED.value}
+        released: list[int] = []
+        with self.sessions.begin() as session:
+            builds = {row.id: row for row in session.scalars(select(BuildRow)).all()}
+            leases = session.scalars(select(PortLeaseRow)).all()
+            for lease in leases:
+                build = builds.get(lease.build_id)
+                if (
+                    build is None
+                    or build.status in terminal
+                    or build.host_port != lease.port
+                ):
+                    released.append(lease.port)
+                    session.delete(lease)
+            self._insert_missing_port_leases(session, builds.values(), terminal)
+        return released
+
+    def _seed_port_leases(self) -> None:
+        terminal = {BuildStatus.DESTROYED.value}
+        with self.sessions.begin() as session:
+            self._insert_missing_port_leases(
+                session, session.scalars(select(BuildRow)).all(), terminal
+            )
+
+    @staticmethod
+    def _insert_missing_port_leases(session, builds, terminal: set[str]) -> None:
+        for build in builds:
+            if build.host_port is None or build.status in terminal:
+                continue
+            statement = (
+                sqlite_insert(PortLeaseRow)
+                .values(port=build.host_port, build_id=build.id)
+                .on_conflict_do_nothing()
+            )
+            session.execute(statement)
 
     @staticmethod
     def _repo_dict(repo: RepositoryRevision) -> dict[str, object]:

@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 import uvicorn
+from pydantic import ValidationError
 from rich.console import Console
 from rich.table import Table
 
@@ -14,7 +15,7 @@ from mini_runbot.bootstrap import create_manager
 from mini_runbot.cli.presentation import print_build, print_build_list, print_operation_result
 from mini_runbot.config import Settings
 from mini_runbot.domain.errors import BuildNotFoundError, MiniRunbotError
-from mini_runbot.domain.validation import CreateBuildRequest
+from mini_runbot.domain.validation import CreateBuildRequest, RequestedRepository
 
 app = typer.Typer(help="Local Mini-Runbot proof of concept.")
 build_app = typer.Typer(help="Manage builds.")
@@ -27,18 +28,37 @@ def create_build(
     repo: Annotated[str, typer.Option("--repo")],
     ref: Annotated[str, typer.Option("--ref")],
     modules: Annotated[str, typer.Option("--modules")],
+    extra_repo: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--extra-repo",
+            help="Additional configured repository as ALIAS=REF; repeat as needed.",
+        ),
+    ] = None,
     ttl_seconds: Annotated[int, typer.Option("--ttl-seconds")] = 14_400,
     run: Annotated[bool, typer.Option("--run", help="Execute immediately with Docker.")] = False,
     json_output: Annotated[
         bool, typer.Option("--json", help="Emit machine-readable JSON.")
     ] = False,
 ) -> None:
-    request = CreateBuildRequest(
-        repository=repo,
-        ref=ref,
-        modules=[item.strip() for item in modules.split(",") if item.strip()],
-        ttl_seconds=ttl_seconds,
-    )
+    try:
+        repositories = [RequestedRepository(repository=repo, ref=ref)]
+        for value in extra_repo or []:
+            alias, separator, extra_ref = value.partition("=")
+            if not separator or not alias or not extra_ref:
+                raise typer.BadParameter(
+                    "additional repositories must use ALIAS=REF",
+                    param_hint="--extra-repo",
+                )
+            repositories.append(RequestedRepository(repository=alias, ref=extra_ref))
+        request = CreateBuildRequest(
+            repositories=repositories,
+            modules=[item.strip() for item in modules.split(",") if item.strip()],
+            ttl_seconds=ttl_seconds,
+        )
+    except ValidationError as exc:
+        message = exc.errors(include_url=False)[0]["msg"]
+        raise typer.BadParameter(str(message)) from exc
     try:
         manager = create_manager(docker=run)
         build = manager.create(request)

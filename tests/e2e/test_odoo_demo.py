@@ -6,7 +6,7 @@ import pytest
 from mini_runbot.bootstrap import create_manager
 from mini_runbot.config import RepositoryConfig, Settings
 from mini_runbot.domain.enums import BuildStatus
-from mini_runbot.domain.validation import CreateBuildRequest
+from mini_runbot.domain.validation import CreateBuildRequest, RequestedRepository
 
 pytestmark = pytest.mark.docker
 
@@ -25,6 +25,13 @@ def test_real_odoo_install_test_healthcheck_and_destroy(tmp_path: Path) -> None:
                 url=str(project_root),
                 target="demo-source",
                 addons_subpath="demo_addons",
+                addons_priority=100,
+            ),
+            "demo-support": RepositoryConfig(
+                url=str(project_root),
+                target="demo-support-source",
+                addons_subpath="demo_addons",
+                addons_priority=200,
             )
         },
         port_start=18200,
@@ -33,13 +40,20 @@ def test_real_odoo_install_test_healthcheck_and_destroy(tmp_path: Path) -> None:
     )
     manager = create_manager(settings, docker=True)
     build = manager.create(
-        CreateBuildRequest(repository="demo", ref="HEAD", modules=["mini_runbot_demo"])
+        CreateBuildRequest(
+            repositories=[
+                RequestedRepository(repository="demo", ref="HEAD"),
+                RequestedRepository(repository="demo-support", ref="HEAD"),
+            ],
+            modules=["mini_runbot_demo"],
+        )
     )
 
     try:
         result = manager.execute(build.id)
         assert result.status == BuildStatus.RUNNING
-        assert result.repositories[0].commit_sha
+        assert all(item.commit_sha for item in result.repositories)
+        assert len(result.repositories) == 2
         assert result.preview_url
     finally:
         manager.destroy(build.id)

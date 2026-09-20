@@ -40,27 +40,37 @@ class BuildManager:
         now = datetime.now(UTC)
         build_id = f"build-{now:%Y%m%d}-{uuid4().hex[:12]}"
         workspace = self.builds_root / build_id
-        repository_source = request.repository
-        if self.settings is not None:
-            repository_source = self.settings.repository(request.repository, request.ref).url
-        terminal = {BuildStatus.DESTROYED, BuildStatus.EXPIRED}
+        selected_repositories = request.selected_repositories
+        revisions: list[RepositoryRevision] = []
+        for selected in selected_repositories:
+            source = selected.repository
+            priority = 0
+            if self.settings is not None:
+                configured = self.settings.repository(selected.repository, selected.ref)
+                source = configured.url
+                priority = configured.addons_priority
+            revisions.append(
+                RepositoryRevision(
+                    name=selected.repository,
+                    source=source,
+                    requested_ref=selected.ref,
+                    addons_priority=priority,
+                )
+            )
+        terminal = {BuildStatus.DESTROYED}
         used_ports = {
             item.host_port
             for item in self.repository.list()
             if item.host_port is not None and item.status not in terminal
         }
-        host_port = self.port_allocator.allocate(used_ports) if self.port_allocator else None
+        host_port = (
+            self.port_allocator.allocate(build_id, used_ports) if self.port_allocator else None
+        )
         build = Build(
             id=build_id,
             status=BuildStatus.NEW,
-            requested_ref=request.ref,
-            repositories=[
-                RepositoryRevision(
-                    name=request.repository,
-                    source=repository_source,
-                    requested_ref=request.ref,
-                )
-            ],
+            requested_ref=selected_repositories[0].ref,
+            repositories=revisions,
             modules=list(request.modules),
             created_at=now,
             expires_at=now + timedelta(seconds=request.ttl_seconds),
@@ -70,12 +80,17 @@ class BuildManager:
             host_port=host_port,
             preview_url=f"http://127.0.0.1:{host_port}" if host_port else None,
         )
-        self.repository.add(build)
+        try:
+            self.repository.add(build)
+        except Exception:
+            if self.port_allocator and build.host_port:
+                self.port_allocator.release(build.id, build.host_port)
+            raise
         try:
             self.runtime.prepare(build.id, build.workspace_path)
         except Exception as exc:
             if self.port_allocator and build.host_port:
-                self.port_allocator.release(build.host_port)
+                self.port_allocator.release(build.id, build.host_port)
             build.failure_stage = "prepare_workspace"
             build.failure_message = str(exc)[:1000]
             build.transition_to(BuildStatus.FAILED)
@@ -231,7 +246,7 @@ class BuildManager:
             self.repository.update(build)
         self.runtime.destroy(build.id, build.workspace_path)
         if self.port_allocator and build.host_port:
-            self.port_allocator.release(build.host_port)
+            self.port_allocator.release(build.id, build.host_port)
         build.transition_to(BuildStatus.DESTROYED)
         build.finished_at = datetime.now(UTC)
         self.repository.update(build)
@@ -283,4 +298,6 @@ class BuildManager:
                     recovered.append(build.id)
             except Exception:
                 failed.append(build.id)
+        if self.port_allocator:
+            self.port_allocator.reconcile()
         return CleanupResult(len(builds), recovered, failed)

@@ -36,7 +36,9 @@ class DockerComposeRuntimeService:
             raise RuntimeOperationError("Build has no allocated host port")
         if any(not repository.checkout_path for repository in build.repositories):
             raise RuntimeOperationError("All repositories must be checked out before rendering")
-        repositories = sorted(build.repositories, key=lambda item: item.addons_priority)
+        repositories = sorted(
+            build.repositories, key=lambda item: (item.addons_priority, item.name)
+        )
         addons_path = ",".join(
             ["/usr/lib/python3/dist-packages/odoo/addons"]
             + [f"/mnt/addons/{item.name}" for item in repositories]
@@ -190,7 +192,9 @@ class DockerComposeRuntimeService:
 
     @staticmethod
     def _addons_path(build: Build) -> str:
-        repositories = sorted(build.repositories, key=lambda item: item.addons_priority)
+        repositories = sorted(
+            build.repositories, key=lambda item: (item.addons_priority, item.name)
+        )
         return ",".join(
             ["/usr/lib/python3/dist-packages/odoo/addons"]
             + [f"/mnt/addons/{item.name}" for item in repositories]

@@ -13,6 +13,7 @@ class RepositoryResponse(BaseModel):
     requested_ref: str
     commit_sha: str | None
     checkout_path: str | None
+    addons_priority: int
 
 
 class StageResponse(BaseModel):
@@ -63,6 +64,7 @@ class RepositoryOptionResponse(BaseModel):
     alias: str
     default_ref: str
     allow_request_ref: bool
+    addons_priority: int
 
 
 class PublicConfigResponse(BaseModel):

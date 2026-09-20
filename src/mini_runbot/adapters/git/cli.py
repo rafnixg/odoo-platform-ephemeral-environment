@@ -96,7 +96,11 @@ class GitCliService:
                 ["git", "-C", str(target), "checkout", "--detach", sha]
             )
             source = str(source_path)
-        log_path.write_text(output, encoding="utf-8")
+        with log_path.open("a", encoding="utf-8") as log:
+            log.write(f"== {revision.name} @ {revision.requested_ref} ==\n")
+            log.write(output)
+            if output and not output.endswith("\n"):
+                log.write("\n")
         addons_path = (target / config.addons_subpath).resolve()
         if target not in {addons_path, *addons_path.parents} or not addons_path.is_dir():
             raise GitOperationError(

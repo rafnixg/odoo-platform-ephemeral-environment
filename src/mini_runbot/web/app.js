@@ -54,7 +54,7 @@ function filteredBuilds() {
   const query = $("#search-input").value.trim().toLowerCase();
   const status = $("#status-filter").value;
   return state.builds.filter((build) => {
-    const haystack = [build.id, build.requested_ref, ...build.modules].join(" ").toLowerCase();
+    const haystack = [build.id, build.requested_ref, ...build.modules, ...build.repositories.map((item) => item.name)].join(" ").toLowerCase();
     return (!query || haystack.includes(query)) && (!status || build.status === status);
   });
 }
@@ -70,11 +70,12 @@ function renderBuilds() {
   const builds = filteredBuilds();
   $("#build-list").innerHTML = builds.map((build) => {
     const sha = build.repositories[0]?.commit_sha;
+    const repositoryNames = build.repositories.map((item) => item.name).join(", ");
     const modules = build.modules.slice(0, 3).map((item) => `<span class="module">${escapeHtml(item)}</span>`).join("");
     const remaining = build.modules.length > 3 ? `<span class="module">+${build.modules.length - 3}</span>` : "";
     return `<div class="build-row" role="row" tabindex="0" data-build-id="${escapeHtml(build.id)}">
       <span><strong class="build-id">${escapeHtml(build.id)}</strong><small class="build-sub">${sha ? escapeHtml(sha.slice(0, 10)) : "Awaiting SHA"}</small></span>
-      <span><strong class="source-ref">${escapeHtml(build.requested_ref)}</strong><small class="build-sub">${escapeHtml(build.repositories[0]?.name || "—")}</small></span>
+      <span><strong class="source-ref">${escapeHtml(build.requested_ref)}</strong><small class="build-sub">${escapeHtml(repositoryNames || "—")}</small></span>
       <span class="module-list">${modules}${remaining}</span>
       <span>${statusBadge(build.status)}</span>
       <span><strong class="source-ref">${formatDate(build.created_at)}</strong><small class="build-sub">${relativeTime(build.created_at)}</small></span>
@@ -96,7 +97,7 @@ function stageMarkup(stage) {
 
 function renderDrawer(build) {
   if (!build) return closeDrawer();
-  const repositories = build.repositories.map((repo) => `<div><span>${escapeHtml(repo.name)}</span><strong class="sha">${escapeHtml(repo.commit_sha || "Pending resolution")}</strong></div>`).join("");
+  const repositories = build.repositories.map((repo) => `<div><span>${escapeHtml(repo.name)} @ ${escapeHtml(repo.requested_ref)} · priority ${escapeHtml(repo.addons_priority)}</span><strong class="sha">${escapeHtml(repo.commit_sha || "Pending resolution")}</strong></div>`).join("");
   const canDestroy = !activeStatuses.has(build.status) && build.status !== "destroyed";
   const preview = build.status === "running" && build.preview_url ? `<a class="button button-primary" href="${escapeHtml(build.preview_url)}" target="_blank" rel="noopener">Open preview ↗</a>` : "";
   $("#drawer-content").innerHTML = `
@@ -173,7 +174,7 @@ async function loadConfig() {
   $("#worker-count").textContent = `${state.config.max_concurrent_builds} worker${state.config.max_concurrent_builds === 1 ? "" : "s"}`;
   const select = $("#repository-input");
   select.innerHTML = state.config.repositories.length
-    ? state.config.repositories.map((item) => `<option value="${escapeHtml(item.alias)}" data-ref="${escapeHtml(item.default_ref)}">${escapeHtml(item.alias)}</option>`).join("")
+    ? state.config.repositories.map((item, index) => `<option value="${escapeHtml(item.alias)}" data-ref="${escapeHtml(item.default_ref)}" ${index === 0 ? "selected" : ""}>${escapeHtml(item.alias)} · priority ${escapeHtml(item.addons_priority)}</option>`).join("")
     : '<option value="">No repositories configured</option>';
   select.disabled = state.config.repositories.length === 0;
   $("#submit-build").disabled = state.config.repositories.length === 0;
@@ -192,7 +193,9 @@ async function submitBuild(event) {
   errorBox.hidden = true;
   $("#submit-build").disabled = true;
   try {
-    const build = await api("/builds", { method: "POST", body: JSON.stringify({ repository: form.get("repository"), ref: form.get("ref"), modules: String(form.get("modules")).split(",").map((item) => item.trim()).filter(Boolean), ttl_seconds: Number(form.get("ttl_seconds")) }) });
+    const reference = String(form.get("ref"));
+    const repositories = form.getAll("repository").map((repository) => ({ repository, ref: reference }));
+    const build = await api("/builds", { method: "POST", body: JSON.stringify({ repositories, modules: String(form.get("modules")).split(",").map((item) => item.trim()).filter(Boolean), ttl_seconds: Number(form.get("ttl_seconds")) }) });
     $("#create-dialog").close();
     showToast(`Build ${build.id} queued.`);
     await refresh();
