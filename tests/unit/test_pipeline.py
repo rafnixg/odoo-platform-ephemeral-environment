@@ -51,10 +51,14 @@ class FakeRuntime:
 
     def _call(self, name: str, build: Build) -> CommandResult:
         self.calls.append(name)
-        if self.fail_at == name:
-            raise RuntimeOperationError(f"controlled {name} failure")
         log = build.workspace_path / "logs" / f"{name}.log"
         log.write_text(name, encoding="utf-8")
+        if self.fail_at == name:
+            raise RuntimeOperationError(
+                f"controlled {name} failure",
+                exit_code=7,
+                log_path=str(log),
+            )
         return CommandResult(0, 0.01, str(log), f"{name} passed")
 
     def render(self, build: Build) -> CommandResult:
@@ -80,7 +84,8 @@ class FakeRuntime:
 
 
 class FixedPort:
-    released: list[int] = []
+    def __init__(self) -> None:
+        self.released: list[int] = []
 
     def allocate(self, build_id: str, excluded: set[int] | None = None) -> int:
         return 18123
@@ -135,3 +140,6 @@ def test_failure_prevents_publication_and_records_stage(tmp_path: Path, failure:
     assert failed.status == BuildStatus.FAILED
     assert failed.failure_stage == failure
     assert failed.stages[-1].status == StageStatus.FAILED
+    assert failed.stages[-1].exit_code == 7
+    assert failed.stages[-1].log_path
+    assert runtime.calls[-1] == "destroy"

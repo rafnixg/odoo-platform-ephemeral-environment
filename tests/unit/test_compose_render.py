@@ -1,6 +1,9 @@
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 from mini_runbot.adapters.runtime.compose import DockerComposeRuntimeService
 from mini_runbot.config import Settings
@@ -48,6 +51,7 @@ def test_render_uses_isolated_names_port_and_read_only_mount(tmp_path: Path) -> 
     assert "--db_host=db" in rendered
     assert "--database_host" not in rendered
     assert f"{checkout.as_posix()}:/mnt/addons/custom:ro" in rendered.replace("\\\\", "/")
+    assert "odoo-data:/var/lib/odoo" in rendered
     assert "/var/run/docker.sock" not in rendered
 
 
@@ -111,3 +115,34 @@ def test_parse_compose_ps_supports_array_and_json_lines() -> None:
     assert DockerComposeRuntimeService._parse_compose_ps(
         "\n".join(json.dumps(item) for item in entries)
     ) == entries
+
+
+@pytest.mark.parametrize(
+    ("load_demo_data", "expects_without_demo"),
+    [(True, False), (False, True)],
+)
+def test_install_demo_data_flag_is_configurable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    load_demo_data: bool,
+    expects_without_demo: bool,
+) -> None:
+    runtime = DockerComposeRuntimeService(
+        Settings(builds_root=tmp_path, load_demo_data=load_demo_data)
+    )
+    captured: list[str] = []
+
+    def fake_run(build, stage: str, arguments: list[str]):
+        captured.extend(arguments)
+        return None
+
+    monkeypatch.setattr(runtime, "_run", fake_run)
+    build = SimpleNamespace(
+        database_name="demo",
+        modules=["demo_module"],
+        repositories=[],
+    )
+
+    runtime.install_modules(build)  # type: ignore[arg-type]
+
+    assert ("--without-demo=all" in captured) is expects_without_demo

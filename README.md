@@ -37,6 +37,8 @@ Repository inputs are aliases from configuration, never arbitrary API paths or U
 can point to a local Git repository or an HTTPS/SSH remote and can set `addons_subpath` when its
 Odoo modules are below the repository root. Remote checkouts use a shallow fetch of only the
 requested ref; credentials must come from Git Credential Manager or SSH, never from the URL.
+Odoo demo data is loaded by default because many upstream/OCA test suites reference demo XML
+records. Set `load_demo_data: false` for production-like previews that do not run such tests.
 
 ## CLI
 
@@ -124,8 +126,8 @@ NEW -> CHECKING_OUT -> PREPARING -> INSTALLING -> TESTING -> STARTING -> RUNNING
 RUNNING -> EXPIRED -> DESTROYING -> DESTROYED
 ```
 
-Every build has its own workspace, Compose project, network, PostgreSQL volume/database, and
-loopback host port. PostgreSQL is not exposed on the host. Containers have memory, CPU, PID,
+Every build has its own workspace, Compose project, network, PostgreSQL volume/database, Odoo
+filestore volume, and loopback host port. PostgreSQL is not exposed on the host. Containers have memory, CPU, PID,
 and log-size limits. Docker isolation is not a security boundary for hostile repositories;
 run the orchestrator only on a dedicated host with trusted code.
 

@@ -66,22 +66,28 @@ class DockerComposeRuntimeService:
         return self._run(build, "database", ["up", "-d", "--wait", "db"])
 
     def install_modules(self, build: Build) -> CommandResult:
+        arguments = [
+            "run",
+            "--rm",
+            "odoo",
+            "odoo",
+            "-d",
+            build.database_name,
+            "-i",
+            ",".join(build.modules),
+        ]
+        if not self.settings.load_demo_data:
+            arguments.append("--without-demo=all")
+        arguments.extend(
+            [
+                "--stop-after-init",
+                f"--addons-path={self._addons_path(build)}",
+            ]
+        )
         return self._run(
             build,
             "install",
-            [
-                "run",
-                "--rm",
-                "odoo",
-                "odoo",
-                "-d",
-                build.database_name,
-                "-i",
-                ",".join(build.modules),
-                "--without-demo=all",
-                "--stop-after-init",
-                f"--addons-path={self._addons_path(build)}",
-            ],
+            arguments,
         )
 
     def test_modules(self, build: Build) -> CommandResult:
@@ -239,7 +245,11 @@ class DockerComposeRuntimeService:
         log_path = build.workspace_path / "logs" / f"{stage}.log"
         log_path.write_text(f"{result.stdout}{result.stderr}"[-1_000_000:], encoding="utf-8")
         if result.returncode != 0:
-            raise RuntimeOperationError(f"{stage} failed with exit code {result.returncode}")
+            raise RuntimeOperationError(
+                f"{stage} failed with exit code {result.returncode}",
+                exit_code=result.returncode,
+                log_path=str(log_path),
+            )
         return CommandResult(
             exit_code=result.returncode,
             duration_seconds=time.monotonic() - started,

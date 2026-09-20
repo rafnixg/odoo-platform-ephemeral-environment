@@ -33,6 +33,7 @@ class Settings:
     max_concurrent_builds: int = 2
     cleanup_interval_seconds: int = 0
     destroyed_retention_seconds: int = 0
+    load_demo_data: bool = True
     retain_failed_runtime: bool = False
 
     @classmethod
@@ -114,6 +115,7 @@ class Settings:
             max_concurrent_builds=int(raw.get("max_concurrent_builds", 2)),
             cleanup_interval_seconds=cleanup_interval_seconds,
             destroyed_retention_seconds=destroyed_retention_seconds,
+            load_demo_data=bool(raw.get("load_demo_data", True)),
             retain_failed_runtime=bool(raw.get("retain_failed_runtime", False)),
         )
 

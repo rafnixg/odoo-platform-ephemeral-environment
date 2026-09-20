@@ -174,6 +174,8 @@ class BuildManager:
                     started_at=now,
                     finished_at=now,
                     duration_seconds=0,
+                    exit_code=getattr(exc, "exit_code", None),
+                    log_path=getattr(exc, "log_path", None),
                     summary=str(exc)[:1000],
                 )
             )
@@ -183,6 +185,7 @@ class BuildManager:
             if build.status not in {BuildStatus.DESTROYING, BuildStatus.DESTROYED}:
                 build.transition_to(BuildStatus.FAILED)
             self.repository.update(build)
+            self._cleanup_failed_execution(build)
             raise
 
     def get(self, build_id: str) -> Build:
@@ -206,6 +209,20 @@ class BuildManager:
             )
         )
         self.repository.update(build)
+
+    def _cleanup_failed_execution(self, build: Build) -> None:
+        if self.settings and self.settings.retain_failed_runtime:
+            return
+        try:
+            self.runtime.destroy(build.id, build.workspace_path)
+        except Exception as cleanup_error:
+            build.failure_message = (
+                f"{build.failure_message}; runtime cleanup failed: {cleanup_error}"
+            )[:1000]
+            self.repository.update(build)
+            return
+        if self.port_allocator and build.host_port:
+            self.port_allocator.release(build.id, build.host_port)
 
     @staticmethod
     def _is_build_runtime(runtime: RuntimeService) -> bool:

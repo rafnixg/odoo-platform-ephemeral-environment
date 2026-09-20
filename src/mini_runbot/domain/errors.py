@@ -27,7 +27,16 @@ class GitOperationError(MiniRunbotError):
 
 
 class RuntimeOperationError(MiniRunbotError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        exit_code: int | None = None,
+        log_path: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.exit_code = exit_code
+        self.log_path = log_path
 
 
 class BuildExecutionError(MiniRunbotError):

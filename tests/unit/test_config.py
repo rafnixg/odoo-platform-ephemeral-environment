@@ -48,3 +48,13 @@ def test_rejects_negative_destroyed_retention(
 
     with pytest.raises(ConfigurationError, match="zero or positive"):
         Settings.from_environment()
+
+
+def test_load_demo_data_can_be_disabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = tmp_path / "config.yaml"
+    config.write_text("load_demo_data: false\n", encoding="utf-8")
+    monkeypatch.setenv("MINI_RUNBOT_CONFIG", str(config))
+
+    assert Settings.from_environment().load_demo_data is False

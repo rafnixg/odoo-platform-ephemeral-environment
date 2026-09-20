@@ -28,6 +28,7 @@ services:
       - "127.0.0.1:{{ host_port }}:8069"
     command: ["odoo", "-d", {{ database_name | tojson }}, "--db_host=db", "--db_port=5432", "--db_user=odoo", "--db_password=odoo", "--addons-path={{ addons_path }}"]
     volumes:
+      - odoo-data:/var/lib/odoo
 {% for repo in repositories %}
       - {{ (repo.checkout_path ~ ':/mnt/addons/' ~ repo.name ~ ':ro') | tojson }}
 {% endfor %}
@@ -45,3 +46,4 @@ networks:
   build: {}
 volumes:
   pgdata: {}
+  odoo-data: {}
