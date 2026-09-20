@@ -233,22 +233,49 @@ def serve(
 @app.command("cleanup")
 def cleanup(
     expired: Annotated[bool, typer.Option("--expired", help="Destroy expired builds.")] = False,
+    retained: Annotated[
+        bool,
+        typer.Option(
+            "--retained",
+            help="Purge destroyed builds older than the configured retention period.",
+        ),
+    ] = False,
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
-    if not expired:
-        typer.echo("Specify --expired", err=True)
+    if not expired and not retained:
+        typer.echo("Specify --expired and/or --retained", err=True)
         raise typer.Exit(2)
-    result = create_manager(docker=True).cleanup_expired()
-    print_operation_result(
-        "Expired build cleanup",
-        {
+    manager = create_manager(docker=True)
+    payload: dict[str, object] = {}
+    if expired:
+        result = manager.cleanup_expired()
+        expired_result = {
             "examined": result.examined,
             "destroyed_ids": result.destroyed_ids,
             "failed_ids": result.failed_ids,
-        },
-        console,
-        json_output=json_output,
-    )
+        }
+        payload["expired"] = expired_result
+        if not json_output:
+            print_operation_result("Expired build cleanup", expired_result, console)
+    if retained:
+        purge = manager.purge_destroyed()
+        retained_result = {
+            "examined": purge.examined,
+            "purged_ids": purge.purged_ids,
+            "failed_ids": purge.failed_ids,
+        }
+        payload["retained"] = retained_result
+        if not json_output:
+            print_operation_result(
+                "Destroyed build retention cleanup", retained_result, console
+            )
+    if json_output:
+        print_operation_result(
+            "Cleanup",
+            payload,
+            console,
+            json_output=True,
+        )
 
 
 @app.command("recover")

@@ -47,5 +47,14 @@ class CleanupScheduler:
                             "failed_ids": result.failed_ids,
                         },
                     )
+                purge = self.manager.purge_destroyed()
+                if purge.purged_ids or purge.failed_ids:
+                    logger.info(
+                        "Destroyed build retention cleanup completed",
+                        extra={
+                            "purged_ids": purge.purged_ids,
+                            "failed_ids": purge.failed_ids,
+                        },
+                    )
             except Exception:
                 logger.exception("Scheduled expired build cleanup failed")

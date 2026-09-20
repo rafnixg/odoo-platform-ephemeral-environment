@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -8,13 +9,20 @@ from uuid import uuid4
 from mini_runbot.config import Settings
 from mini_runbot.domain.enums import BuildStatus, StageStatus
 from mini_runbot.domain.errors import BuildNotFoundError, ConfigurationError, UnsafePathError
-from mini_runbot.domain.models import Build, CleanupResult, RepositoryRevision, StageResult
+from mini_runbot.domain.models import (
+    Build,
+    CleanupResult,
+    PurgeResult,
+    RepositoryRevision,
+    StageResult,
+)
 from mini_runbot.domain.validation import CreateBuildRequest
 from mini_runbot.ports.repositories import BuildRepository
 from mini_runbot.ports.services import (
     CommandResult,
     GitService,
     PortAllocator,
+    RuntimeInspection,
     RuntimeService,
 )
 
@@ -273,6 +281,37 @@ class BuildManager:
                 failed.append(build.id)
         return CleanupResult(len(builds), destroyed, failed)
 
+    def purge_destroyed(self, now: datetime | None = None) -> PurgeResult:
+        retention = self.settings.destroyed_retention_seconds if self.settings else 0
+        builds = self.list()
+        if retention <= 0:
+            return PurgeResult(len(builds), [], [])
+        cutoff = (now or datetime.now(UTC)) - timedelta(seconds=retention)
+        purged: list[str] = []
+        failed: list[str] = []
+        for build in builds:
+            finished_at = build.finished_at
+            if build.status != BuildStatus.DESTROYED or finished_at is None:
+                continue
+            if finished_at.tzinfo is None:
+                finished_at = finished_at.replace(tzinfo=UTC)
+            if finished_at > cutoff:
+                continue
+            try:
+                workspace = build.workspace_path.resolve()
+                expected = (self.builds_root / build.id).resolve()
+                if workspace != expected or workspace.parent != self.builds_root:
+                    raise UnsafePathError(
+                        f"Workspace is outside configured root: {workspace}"
+                    )
+                if workspace.exists():
+                    shutil.rmtree(workspace)
+                self.repository.delete(build.id)
+                purged.append(build.id)
+            except Exception:
+                failed.append(build.id)
+        return PurgeResult(len(builds), purged, failed)
+
     def recover_interrupted(self) -> CleanupResult:
         active = {
             BuildStatus.CHECKING_OUT,
@@ -295,9 +334,40 @@ class BuildManager:
                     build.finished_at = datetime.now(UTC)
                     build.transition_to(BuildStatus.FAILED)
                     self.repository.update(build)
+                    self._cleanup_recovered_runtime(build)
                     recovered.append(build.id)
+                elif build.status == BuildStatus.RUNNING:
+                    inspection = self._inspect_runtime(build)
+                    if inspection is not None and not inspection.running:
+                        build.failure_stage = "recovery"
+                        build.failure_message = inspection.summary
+                        build.finished_at = datetime.now(UTC)
+                        build.transition_to(BuildStatus.FAILED)
+                        self.repository.update(build)
+                        self._cleanup_recovered_runtime(build, inspection)
+                        recovered.append(build.id)
             except Exception:
                 failed.append(build.id)
-        if self.port_allocator:
-            self.port_allocator.reconcile()
+        reconcile = getattr(self.port_allocator, "reconcile", None)
+        if callable(reconcile):
+            reconcile()
         return CleanupResult(len(builds), recovered, failed)
+
+    def _inspect_runtime(self, build: Build) -> RuntimeInspection | None:
+        inspect_runtime = getattr(self.runtime, "inspect", None)
+        if not callable(inspect_runtime):
+            return None
+        return inspect_runtime(build)
+
+    def _cleanup_recovered_runtime(
+        self, build: Build, inspection: RuntimeInspection | None = None
+    ) -> None:
+        if self.settings and self.settings.retain_failed_runtime:
+            return
+        inspection = inspection or self._inspect_runtime(build)
+        if inspection is None:
+            return
+        if inspection.exists:
+            self.runtime.destroy(build.id, build.workspace_path)
+        if self.port_allocator and build.host_port:
+            self.port_allocator.release(build.id, build.host_port)

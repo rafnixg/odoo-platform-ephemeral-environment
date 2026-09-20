@@ -13,6 +13,14 @@ class CommandResult:
     summary: str
 
 
+@dataclass(frozen=True, slots=True)
+class RuntimeInspection:
+    exists: bool
+    running: bool
+    services: tuple[str, ...]
+    summary: str
+
+
 class GitService(Protocol):
     def checkout(
         self,
@@ -50,3 +58,5 @@ class BuildRuntimeService(RuntimeService, Protocol):
     def start_server(self, build: Build) -> CommandResult: ...
 
     def wait_healthy(self, build: Build) -> CommandResult: ...
+
+    def inspect(self, build: Build) -> RuntimeInspection: ...

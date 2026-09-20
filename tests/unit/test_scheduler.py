@@ -1,7 +1,7 @@
 from threading import Event
 
 from mini_runbot.application.scheduler import CleanupScheduler
-from mini_runbot.domain.models import CleanupResult
+from mini_runbot.domain.models import CleanupResult, PurgeResult
 
 
 class RecordingManager:
@@ -13,6 +13,9 @@ class RecordingManager:
         self.calls += 1
         self.called.set()
         return CleanupResult(0, [], [])
+
+    def purge_destroyed(self) -> PurgeResult:
+        return PurgeResult(0, [], [])
 
 
 def test_scheduler_runs_cleanup_and_stops() -> None:

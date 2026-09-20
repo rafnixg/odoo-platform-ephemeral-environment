@@ -22,6 +22,7 @@ _CAN_FAIL = {
     BuildStatus.INSTALLING,
     BuildStatus.TESTING,
     BuildStatus.STARTING,
+    BuildStatus.RUNNING,
 }
 
 _CAN_DESTROY = set(BuildStatus) - {BuildStatus.DESTROYING, BuildStatus.DESTROYED}
@@ -40,4 +41,3 @@ def can_transition(current: BuildStatus, target: BuildStatus) -> bool:
 def validate_transition(current: BuildStatus, target: BuildStatus) -> None:
     if not can_transition(current, target):
         raise InvalidTransitionError(f"Cannot transition build from {current} to {target}")
-

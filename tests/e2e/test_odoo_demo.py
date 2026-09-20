@@ -55,6 +55,13 @@ def test_real_odoo_install_test_healthcheck_and_destroy(tmp_path: Path) -> None:
         assert all(item.commit_sha for item in result.repositories)
         assert len(result.repositories) == 2
         assert result.preview_url
+        inspection = manager.runtime.inspect(result)  # type: ignore[attr-defined]
+        assert inspection.running
+
+        manager.runtime.destroy(result.id, result.workspace_path)
+        recovery = manager.recover_interrupted()
+        assert recovery.destroyed_ids == [result.id]
+        assert manager.get(result.id).status == BuildStatus.FAILED
     finally:
         manager.destroy(build.id)
 

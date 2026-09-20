@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -98,3 +99,15 @@ def test_addons_path_orders_multiple_repositories_by_priority(tmp_path: Path) ->
     assert DockerComposeRuntimeService._addons_path(build).endswith(
         "/mnt/addons/custom,/mnt/addons/oca"
     )
+
+
+def test_parse_compose_ps_supports_array_and_json_lines() -> None:
+    entries = [
+        {"Service": "db", "State": "running", "Health": "healthy"},
+        {"Service": "odoo", "State": "running", "Health": ""},
+    ]
+
+    assert DockerComposeRuntimeService._parse_compose_ps(json.dumps(entries)) == entries
+    assert DockerComposeRuntimeService._parse_compose_ps(
+        "\n".join(json.dumps(item) for item in entries)
+    ) == entries

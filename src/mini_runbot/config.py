@@ -32,6 +32,7 @@ class Settings:
     health_timeout_seconds: int = 120
     max_concurrent_builds: int = 2
     cleanup_interval_seconds: int = 0
+    destroyed_retention_seconds: int = 0
     retain_failed_runtime: bool = False
 
     @classmethod
@@ -89,6 +90,9 @@ class Settings:
         )
         if cleanup_interval_seconds < 0:
             raise ConfigurationError("cleanup_interval_seconds must be zero or positive")
+        destroyed_retention_seconds = int(raw.get("destroyed_retention_seconds", 0))
+        if destroyed_retention_seconds < 0:
+            raise ConfigurationError("destroyed_retention_seconds must be zero or positive")
 
         return cls(
             database_url=os.getenv(
@@ -109,6 +113,7 @@ class Settings:
             health_timeout_seconds=int(raw.get("health_timeout_seconds", 120)),
             max_concurrent_builds=int(raw.get("max_concurrent_builds", 2)),
             cleanup_interval_seconds=cleanup_interval_seconds,
+            destroyed_retention_seconds=destroyed_retention_seconds,
             retain_failed_runtime=bool(raw.get("retain_failed_runtime", False)),
         )
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import time
 import urllib.error
@@ -11,7 +12,7 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoes
 from mini_runbot.config import Settings
 from mini_runbot.domain.errors import RuntimeOperationError
 from mini_runbot.domain.models import Build
-from mini_runbot.ports.services import CommandResult
+from mini_runbot.ports.services import CommandResult, RuntimeInspection
 
 
 class DockerComposeRuntimeService:
@@ -125,6 +126,66 @@ class DockerComposeRuntimeService:
             time.sleep(1)
         raise RuntimeOperationError(f"Odoo healthcheck timed out: {last_error}")
 
+    def inspect(self, build: Build) -> RuntimeInspection:
+        compose_path = self._compose_path(build)
+        if not compose_path.is_file():
+            return RuntimeInspection(False, False, (), "Compose configuration is absent")
+        command = [
+            "docker",
+            "compose",
+            "--project-name",
+            build.compose_project_name,
+            "--file",
+            str(compose_path),
+            "ps",
+            "--all",
+            "--format",
+            "json",
+        ]
+        try:
+            result = subprocess.run(
+                command,
+                cwd=build.workspace_path,
+                capture_output=True,
+                text=True,
+                timeout=self.settings.command_timeout_seconds,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise RuntimeOperationError(
+                f"Docker runtime inspection could not complete: {exc}"
+            ) from exc
+        log_path = build.workspace_path / "logs" / "runtime_inspect.log"
+        log_path.write_text(f"{result.stdout}{result.stderr}"[-1_000_000:], encoding="utf-8")
+        if result.returncode != 0:
+            raise RuntimeOperationError(f"Docker runtime inspection failed; see {log_path}")
+        entries = self._parse_compose_ps(result.stdout)
+        services = tuple(
+            sorted(
+                str(item.get("Service"))
+                for item in entries
+                if item.get("Service")
+            )
+        )
+        running_services = {
+            str(item.get("Service"))
+            for item in entries
+            if str(item.get("State", "")).lower() == "running"
+        }
+        db_entries = [item for item in entries if item.get("Service") == "db"]
+        database_healthy = all(
+            str(item.get("Health", "")).lower() in {"", "healthy"}
+            for item in db_entries
+        )
+        expected = {"db", "odoo"}
+        running = expected.issubset(running_services) and database_healthy
+        summary = (
+            "Docker runtime is running"
+            if running
+            else f"Docker runtime incomplete; services={','.join(services) or 'none'}"
+        )
+        return RuntimeInspection(bool(entries), running, services, summary)
+
     def destroy(self, build_id: str, workspace_path: Path) -> None:
         workspace = self._validated_workspace(build_id, workspace_path)
         compose_path = workspace / "runtime" / "compose.yaml"
@@ -215,3 +276,28 @@ class DockerComposeRuntimeService:
             log_path=str(log_path),
             summary=summary,
         )
+
+    @staticmethod
+    def _parse_compose_ps(output: str) -> list[dict[str, object]]:
+        content = output.strip()
+        if not content:
+            return []
+        try:
+            parsed = json.loads(content)
+            if isinstance(parsed, list):
+                return [item for item in parsed if isinstance(item, dict)]
+            if isinstance(parsed, dict):
+                return [parsed]
+        except json.JSONDecodeError:
+            entries: list[dict[str, object]] = []
+            for line in content.splitlines():
+                try:
+                    item = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise RuntimeOperationError(
+                        "Docker runtime inspection returned invalid JSON"
+                    ) from exc
+                if isinstance(item, dict):
+                    entries.append(item)
+            return entries
+        raise RuntimeOperationError("Docker runtime inspection returned invalid JSON")

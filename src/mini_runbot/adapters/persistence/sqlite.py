@@ -102,6 +102,13 @@ class SqliteBuildRepository:
                 raise ConcurrentUpdateError(f"Build {build.id} changed concurrently")
         build.version += 1
 
+    def delete(self, build_id: str) -> None:
+        with self.sessions.begin() as session:
+            session.execute(
+                delete(PortLeaseRow).where(PortLeaseRow.build_id == build_id)
+            )
+            session.execute(delete(BuildRow).where(BuildRow.id == build_id))
+
     def try_acquire_port(self, build_id: str, port: int) -> bool:
         try:
             with self.sessions.begin() as session:

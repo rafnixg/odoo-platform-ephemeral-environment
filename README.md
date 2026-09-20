@@ -72,6 +72,9 @@ Runtime destruction is rejected while the in-process worker is still executing t
 concurrent lifecycle transitions and partial resource cleanup.
 Set `cleanup_interval_seconds` in configuration (for example, `60`) to make the API process
 periodically destroy expired runtimes. A value of `0` disables the scheduler.
+Destroyed audit rows and logs are retained indefinitely by default. Set
+`destroyed_retention_seconds` to a positive value and use the scheduler or
+`mini-runbot cleanup --retained` to opt into permanent deletion.
 
 Available operations are `POST /builds`, `GET /builds`, `GET /builds/{build_id}`,
 `GET /builds/{build_id}/logs?stage=test`, and `DELETE /builds/{build_id}`. `POST /builds`

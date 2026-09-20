@@ -63,3 +63,10 @@ class CleanupResult:
     examined: int
     destroyed_ids: list[str]
     failed_ids: list[str]
+
+
+@dataclass(frozen=True, slots=True)
+class PurgeResult:
+    examined: int
+    purged_ids: list[str]
+    failed_ids: list[str]

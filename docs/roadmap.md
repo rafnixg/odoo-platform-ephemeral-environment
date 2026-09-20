@@ -26,8 +26,8 @@ introducing distributed infrastructure.
 - [x] Transactional SQLite port leases across orchestrator processes.
 - [x] Explicit reconciliation of orphaned and missing leases during recovery.
 - [x] Configurable scheduled expiry cleanup in the API process.
-- [ ] Explicit audit and log retention/deletion policy.
-- [ ] Stronger startup reconciliation against actual Docker resources.
+- [x] Opt-in audit and log retention/deletion policy with safe workspace validation.
+- [x] Recovery reconciliation of registered builds against actual Docker services.
 - [ ] Structured log streaming and build cancellation.
 
 ## Phase 4: external integration — optional after PoC validation

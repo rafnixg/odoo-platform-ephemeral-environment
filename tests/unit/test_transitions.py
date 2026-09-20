@@ -24,7 +24,10 @@ def test_allowed_transitions(current: BuildStatus, target: BuildStatus) -> None:
     validate_transition(current, target)
 
 
-@pytest.mark.parametrize("current", [BuildStatus.NEW, BuildStatus.INSTALLING, BuildStatus.TESTING])
+@pytest.mark.parametrize(
+    "current",
+    [BuildStatus.NEW, BuildStatus.INSTALLING, BuildStatus.TESTING, BuildStatus.RUNNING],
+)
 def test_active_build_can_fail(current: BuildStatus) -> None:
     validate_transition(current, BuildStatus.FAILED)
 
@@ -37,4 +40,3 @@ def test_cannot_skip_pipeline_stages() -> None:
 def test_destroyed_build_cannot_restart() -> None:
     with pytest.raises(InvalidTransitionError):
         validate_transition(BuildStatus.DESTROYED, BuildStatus.NEW)
-

@@ -9,6 +9,8 @@ command_timeout_seconds: 900
 health_timeout_seconds: 120
 max_concurrent_builds: 2
 cleanup_interval_seconds: 60
+# Zero retains audit rows and logs indefinitely. Set an explicit period to enable deletion.
+destroyed_retention_seconds: 0
 retain_failed_runtime: false
 repositories:
   custom:

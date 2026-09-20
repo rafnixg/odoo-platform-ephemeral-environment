@@ -37,3 +37,14 @@ def test_rejects_negative_cleanup_interval(
 
     with pytest.raises(ConfigurationError, match="zero or positive"):
         Settings.from_environment()
+
+
+def test_rejects_negative_destroyed_retention(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = tmp_path / "config.yaml"
+    config.write_text("destroyed_retention_seconds: -1\n", encoding="utf-8")
+    monkeypatch.setenv("MINI_RUNBOT_CONFIG", str(config))
+
+    with pytest.raises(ConfigurationError, match="zero or positive"):
+        Settings.from_environment()
