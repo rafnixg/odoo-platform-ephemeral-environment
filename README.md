@@ -3,6 +3,7 @@
 [![CI](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/ci.yml/badge.svg)](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/ci.yml)
 [![Documentation](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/docs.yml/badge.svg)](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/docs.yml)
 [![CodeQL](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/codeql.yml/badge.svg)](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/codeql.yml)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rafnixg/odoo-platform-ephemeral-environment)
 
 Mini-Runbot turns configured Git revisions and Odoo module lists into isolated, tested, temporary
 Odoo 16 environments. It is a local, single-host proof of concept for trusted repositories, not a
@@ -13,9 +14,23 @@ security boundary for hostile code.
 - [Documentación en español](https://rafnixg.github.io/odoo-platform-ephemeral-environment/)
 - [English documentation](https://rafnixg.github.io/odoo-platform-ephemeral-environment/en/)
 - [Documentation sources](gh-docs/es/index.md)
+- [Explore the codebase in DeepWiki](https://deepwiki.com/rafnixg/odoo-platform-ephemeral-environment)
 
-The portal covers installation, configuration, dashboard and CLI usage, the HTTP API, architecture,
-operations, security limits, testing, the roadmap, and architecture decisions.
+The bilingual portal is the canonical project documentation. It covers installation on Windows and
+Linux, configuration, dashboard and CLI usage, the HTTP API, operations, security limits, testing,
+the roadmap, and architecture decisions. Its technical guides connect behavior to the current
+implementation:
+
+- [Domain model and lifecycle](gh-docs/en/domain-model.md)
+- [Eight-stage build pipeline](gh-docs/en/build-pipeline.md)
+- [Concurrency, cleanup, and recovery](gh-docs/en/concurrency-recovery.md)
+- [Ports and adapters](gh-docs/en/adapters.md)
+- [Troubleshooting and operator runbook](gh-docs/en/troubleshooting.md)
+- [CI/CD and automated security](gh-docs/en/ci-cd.md)
+- [Glossary](gh-docs/en/glossary.md)
+
+DeepWiki provides a generated, code-oriented view that complements the maintained portal; when the
+two differ, the repository documentation and implementation are authoritative.
 
 ## Quick start
 
