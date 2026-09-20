@@ -70,6 +70,8 @@ mini-runbot serve --reload
 Open `http://127.0.0.1:8000` for the built-in dashboard. It provides build metrics, filtering,
 creation, live polling, stage timelines, safe log viewing, preview links, and runtime destruction.
 The frontend is served by FastAPI and needs no separate Node.js build or deployment.
+Timestamps are stored and returned in UTC, while the dashboard automatically displays them in the
+browser's local time zone and identifies the detected zone in the header.
 Runtime destruction is rejected while the in-process worker is still executing the build, avoiding
 concurrent lifecycle transitions and partial resource cleanup.
 Set `cleanup_interval_seconds` in configuration (for example, `60`) to make the API process
