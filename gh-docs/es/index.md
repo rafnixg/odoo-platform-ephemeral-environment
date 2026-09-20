@@ -16,10 +16,30 @@ de confianza.
 
 ## Flujo principal
 
-```text
-NEW -> CHECKING_OUT -> PREPARING -> INSTALLING -> TESTING -> STARTING -> RUNNING
-                                  \ error de validación o ejecución -> FAILED
-RUNNING -> EXPIRED -> DESTROYING -> DESTROYED
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> NEW
+    NEW --> CHECKING_OUT
+    CHECKING_OUT --> PREPARING
+    PREPARING --> INSTALLING
+    INSTALLING --> TESTING
+    TESTING --> STARTING
+    STARTING --> RUNNING
+    RUNNING --> EXPIRED: vence el TTL
+    EXPIRED --> DESTROYING
+    FAILED --> DESTROYING
+    RUNNING --> DESTROYING: destrucción manual
+    DESTROYING --> DESTROYED
+    DESTROYED --> [*]
+
+    NEW --> FAILED: error
+    CHECKING_OUT --> FAILED: error
+    PREPARING --> FAILED: error
+    INSTALLING --> FAILED: error
+    TESTING --> FAILED: error
+    STARTING --> FAILED: error
+    RUNNING --> FAILED: error
 ```
 
 Un build solo llega a `RUNNING` cuando los módulos fueron instalados, las pruebas terminaron sin

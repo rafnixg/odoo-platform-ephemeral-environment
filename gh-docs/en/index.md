@@ -15,10 +15,30 @@ Odoo 16 environment. It is a single-host proof of concept for trusted code.
 
 ## Main flow
 
-```text
-NEW -> CHECKING_OUT -> PREPARING -> INSTALLING -> TESTING -> STARTING -> RUNNING
-                                  \ validation or execution error -> FAILED
-RUNNING -> EXPIRED -> DESTROYING -> DESTROYED
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> NEW
+    NEW --> CHECKING_OUT
+    CHECKING_OUT --> PREPARING
+    PREPARING --> INSTALLING
+    INSTALLING --> TESTING
+    TESTING --> STARTING
+    STARTING --> RUNNING
+    RUNNING --> EXPIRED: TTL elapsed
+    EXPIRED --> DESTROYING
+    FAILED --> DESTROYING
+    RUNNING --> DESTROYING: manual destruction
+    DESTROYING --> DESTROYED
+    DESTROYED --> [*]
+
+    NEW --> FAILED: error
+    CHECKING_OUT --> FAILED: error
+    PREPARING --> FAILED: error
+    INSTALLING --> FAILED: error
+    TESTING --> FAILED: error
+    STARTING --> FAILED: error
+    RUNNING --> FAILED: error
 ```
 
 A build reaches `RUNNING` only after its modules are installed, tests report no failures, the server

@@ -15,8 +15,16 @@ runtime, SQLite mediante SQLAlchemy y servicios de aplicación compartidos por T
 
 La máquina de estados es explícita:
 
-```text
-NEW -> CHECKING_OUT -> PREPARING -> INSTALLING -> TESTING -> STARTING -> RUNNING
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> NEW
+    NEW --> CHECKING_OUT
+    CHECKING_OUT --> PREPARING
+    PREPARING --> INSTALLING
+    INSTALLING --> TESTING
+    TESTING --> STARTING
+    STARTING --> RUNNING
 ```
 
 Cualquier estado activo puede fallar. Cualquier estado no destruido puede pasar por `DESTROYING` a

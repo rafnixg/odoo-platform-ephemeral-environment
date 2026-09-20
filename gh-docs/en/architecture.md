@@ -2,14 +2,37 @@
 
 Mini-Runbot separates the domain from transport and infrastructure details.
 
-```text
-Dashboard / FastAPI / Typer CLI
-              |
-       BuildManager + executor + scheduler
-              |
-       Repository and runtime ports
-          /                 \
- SQLite persistence     Git + Docker Compose
+```mermaid
+flowchart TB
+    subgraph transports[Transports]
+        dashboard[Web dashboard]
+        api[FastAPI API]
+        cli[Typer CLI]
+    end
+
+    subgraph application[Application]
+        manager[BuildManager]
+        executor[Executor]
+        scheduler[Scheduler]
+        manager --- executor
+        manager --- scheduler
+    end
+
+    ports[Repository and runtime ports]
+
+    subgraph infrastructure[Infrastructure]
+        sqlite[(SQLite persistence)]
+        git[Git]
+        compose[Docker Compose]
+    end
+
+    dashboard --> manager
+    api --> manager
+    cli --> manager
+    manager --> ports
+    ports --> sqlite
+    ports --> git
+    ports --> compose
 ```
 
 ## Layers

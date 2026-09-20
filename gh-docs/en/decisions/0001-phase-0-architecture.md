@@ -15,8 +15,16 @@ SQLite through SQLAlchemy, and application services shared by Typer and FastAPI.
 
 The state machine is explicit:
 
-```text
-NEW -> CHECKING_OUT -> PREPARING -> INSTALLING -> TESTING -> STARTING -> RUNNING
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> NEW
+    NEW --> CHECKING_OUT
+    CHECKING_OUT --> PREPARING
+    PREPARING --> INSTALLING
+    INSTALLING --> TESTING
+    TESTING --> STARTING
+    STARTING --> RUNNING
 ```
 
 Any active state may fail. Any non-destroyed state may transition through `DESTROYING` to
