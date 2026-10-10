@@ -1,7 +1,7 @@
-# Mini-Runbot para Odoo 16
+# Mini-Runbot para Odoo
 
-Mini-Runbot convierte revisiones Git autorizadas y una lista de módulos en un entorno Odoo 16
-aislado, probado y temporal. Está diseñado como una prueba de concepto de un solo host para código
+Mini-Runbot convierte revisiones Git autorizadas y una lista de módulos en un entorno Odoo
+aislado, probado y temporal, en la serie de Odoo que cada build necesite (16.0 a 20.0). Está diseñado como una prueba de concepto de un solo host para código
 de confianza.
 
 ## Qué resuelve

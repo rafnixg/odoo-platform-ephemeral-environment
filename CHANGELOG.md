@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Add `odoo_versions` image profiles so each build runs on its own Odoo series, selected with
+  `--odoo-version`, the dashboard, the API, or the Git reference name.
+- Verify real builds on Odoo 16.0, 17.0, 18.0, 19.0, and 20.0.
+- Bind the preview server to every container interface so Odoo 20 previews are reachable.
+- Request demo data explicitly on Odoo 19 and later, where it is no longer loaded by default.
+- Fail the `install` stage when Odoo leaves a requested module uninstalled instead of reporting
+  a successful build.
+- Make the demo addon manifest version valid on every supported series.
+- Fix `mini-runbot serve` exiting on Windows when its output is redirected.
+
 ## 0.2.1 — 2026-09-20
 
 - License the project under AGPL-3.0-or-later.

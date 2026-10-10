@@ -82,6 +82,13 @@ def create_build(
         ),
     ] = None,
     ttl_seconds: Annotated[int, typer.Option("--ttl-seconds")] = 14_400,
+    odoo_version: Annotated[
+        str | None,
+        typer.Option(
+            "--odoo-version",
+            help="Configured odoo_versions profile; defaults to the ref name or global image.",
+        ),
+    ] = None,
     run: Annotated[bool, typer.Option("--run", help="Execute immediately with Docker.")] = False,
     json_output: Annotated[
         bool, typer.Option("--json", help="Emit machine-readable JSON.")
@@ -101,6 +108,7 @@ def create_build(
             repositories=repositories,
             modules=[item.strip() for item in modules.split(",") if item.strip()],
             ttl_seconds=ttl_seconds,
+            odoo_version=odoo_version,
         )
     except ValidationError as exc:
         message = exc.errors(include_url=False)[0]["msg"]
@@ -272,7 +280,7 @@ def serve(
     reload: Annotated[bool, typer.Option("--reload")] = False,
 ) -> None:
     """Serve the API and dashboard from one process."""
-    console.print(f"[bold green]Mini-Runbot[/bold green] → http://{host}:{port}")
+    console.print(f"[bold green]Mini-Runbot[/bold green] at http://{host}:{port}")
     uvicorn.run("mini_runbot.api.app:app", host=host, port=port, reload=reload)
 
 

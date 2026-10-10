@@ -129,6 +129,7 @@ function renderDrawer(build) {
         <div><span>Status</span><strong>${statusBadge(build.status)}</strong></div><div><span>Reference</span><strong>${escapeHtml(build.requested_ref)}</strong></div>
         <div><span>Created</span><strong>${formatDate(build.created_at)}</strong></div><div><span>Expires</span><strong>${formatDate(build.expires_at)}</strong></div>
         <div><span>Modules</span><strong>${escapeHtml(build.modules.join(", "))}</strong></div><div><span>Preview port</span><strong>${build.host_port || "—"}</strong></div>
+        <div><span>Odoo image</span><strong>${escapeHtml(build.odoo_image || "—")}</strong></div><div><span>PostgreSQL image</span><strong>${escapeHtml(build.postgres_image || "—")}</strong></div>
       </div>
       ${build.failure_message ? `<section class="detail-section"><div class="form-error"><strong>${escapeHtml(build.failure_stage || "Build failure")}</strong><br>${escapeHtml(build.failure_message)}</div></section>` : ""}
       <section class="detail-section"><div class="detail-section-title"><h3>Repositories</h3></div><div class="detail-grid">${repositories || "<div><strong>No revisions yet</strong></div>"}</div></section>
@@ -198,6 +199,14 @@ async function loadConfig() {
     : '<option value="">No repositories configured</option>';
   select.disabled = state.config.repositories.length === 0;
   $("#submit-build").disabled = state.config.repositories.length === 0;
+  const versionSelect = $("#odoo-version-input");
+  if (versionSelect) {
+    const versions = state.config.odoo_versions || [];
+    versionSelect.innerHTML = [`<option value="">Auto (ref match or ${escapeHtml(state.config.default_odoo_image || "default")})</option>`]
+      .concat(versions.map((item) => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)} · ${escapeHtml(item.odoo_image)}</option>`))
+      .join("");
+    versionSelect.disabled = versions.length === 0;
+  }
   updateDefaultRef();
 }
 
@@ -221,7 +230,10 @@ async function submitBuild(event) {
   try {
     const reference = String(form.get("ref"));
     const repositories = form.getAll("repository").map((repository) => ({ repository, ref: reference }));
-    const build = await api("/builds", { method: "POST", body: JSON.stringify({ repositories, modules: String(form.get("modules")).split(",").map((item) => item.trim()).filter(Boolean), ttl_seconds: Number(form.get("ttl_seconds")) }) });
+    const payload = { repositories, modules: String(form.get("modules")).split(",").map((item) => item.trim()).filter(Boolean), ttl_seconds: Number(form.get("ttl_seconds")) };
+    const odooVersion = String(form.get("odoo_version") || "");
+    if (odooVersion) payload.odoo_version = odooVersion;
+    const build = await api("/builds", { method: "POST", body: JSON.stringify(payload) });
     $("#create-dialog").close();
     showToast(`Build ${build.id} queued.`);
     await refresh();

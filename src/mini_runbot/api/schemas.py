@@ -47,6 +47,9 @@ class BuildResponse(BaseModel):
     failure_message: str | None
     stages: list[StageResponse]
     version: int
+    odoo_version: str | None = None
+    odoo_image: str | None = None
+    postgres_image: str | None = None
 
     @classmethod
     def from_domain(cls, build: Build) -> "BuildResponse":
@@ -67,7 +70,15 @@ class RepositoryOptionResponse(BaseModel):
     addons_priority: int
 
 
+class OdooVersionOptionResponse(BaseModel):
+    name: str
+    odoo_image: str
+    postgres_image: str
+
+
 class PublicConfigResponse(BaseModel):
     repositories: list[RepositoryOptionResponse]
+    odoo_versions: list[OdooVersionOptionResponse] = []
+    default_odoo_image: str | None = None
     default_ttl_seconds: int = 14_400
     max_concurrent_builds: int

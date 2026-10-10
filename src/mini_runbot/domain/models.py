@@ -52,6 +52,9 @@ class Build:
     failure_message: str | None = None
     stages: list[StageResult] = field(default_factory=list)
     version: int = 1
+    odoo_version: str | None = None
+    odoo_image: str | None = None
+    postgres_image: str | None = None
 
     def transition_to(self, target: BuildStatus) -> None:
         validate_transition(self.status, target)

@@ -72,6 +72,15 @@ def public_config() -> PublicConfigResponse:
             }
             for alias, repository in sorted(settings.repositories.items())
         ],
+        odoo_versions=[
+            {
+                "name": name,
+                "odoo_image": version.odoo_image,
+                "postgres_image": version.postgres_image,
+            }
+            for name, version in sorted(settings.odoo_versions.items())
+        ],
+        default_odoo_image=settings.odoo_image,
         max_concurrent_builds=settings.max_concurrent_builds,
     )
 

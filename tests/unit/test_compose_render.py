@@ -8,6 +8,7 @@ import pytest
 from mini_runbot.adapters.runtime.compose import DockerComposeRuntimeService
 from mini_runbot.config import Settings
 from mini_runbot.domain.enums import BuildStatus
+from mini_runbot.domain.errors import RuntimeOperationError
 from mini_runbot.domain.models import Build, RepositoryRevision
 
 
@@ -50,6 +51,7 @@ def test_render_uses_isolated_names_port_and_read_only_mount(tmp_path: Path) -> 
     assert "build_safe" in rendered
     assert "--db_host=db" in rendered
     assert "--database_host" not in rendered
+    assert "--http-interface=0.0.0.0" in rendered
     assert f"{checkout.as_posix()}:/mnt/addons/custom:ro" in rendered.replace("\\\\", "/")
     assert "odoo-data:/var/lib/odoo" in rendered
     assert "/var/run/docker.sock" not in rendered
@@ -118,14 +120,24 @@ def test_parse_compose_ps_supports_array_and_json_lines() -> None:
 
 
 @pytest.mark.parametrize(
-    ("load_demo_data", "expects_without_demo"),
-    [(True, False), (False, True)],
+    ("series", "load_demo_data", "expected_flag"),
+    [
+        ((16, 0), True, None),
+        ((16, 0), False, "--without-demo=all"),
+        ((18, 0), False, "--without-demo=all"),
+        ((19, 0), True, "--with-demo"),
+        ((19, 0), False, None),
+        ((20, 0), True, "--with-demo"),
+        (None, True, None),
+        (None, False, "--without-demo=all"),
+    ],
 )
-def test_install_demo_data_flag_is_configurable(
+def test_install_demo_data_flag_follows_the_odoo_series(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    series: tuple[int, int] | None,
     load_demo_data: bool,
-    expects_without_demo: bool,
+    expected_flag: str | None,
 ) -> None:
     runtime = DockerComposeRuntimeService(
         Settings(builds_root=tmp_path, load_demo_data=load_demo_data)
@@ -137,6 +149,8 @@ def test_install_demo_data_flag_is_configurable(
         return None
 
     monkeypatch.setattr(runtime, "_run", fake_run)
+    monkeypatch.setattr(runtime, "_odoo_series", lambda build: series)
+    monkeypatch.setattr(runtime, "_verify_installed", lambda build: None)
     build = SimpleNamespace(
         database_name="demo",
         modules=["demo_module"],
@@ -145,4 +159,86 @@ def test_install_demo_data_flag_is_configurable(
 
     runtime.install_modules(build)  # type: ignore[arg-type]
 
-    assert ("--without-demo=all" in captured) is expects_without_demo
+    demo_flags = [item for item in captured if "demo" in item and item.startswith("--")]
+    assert demo_flags == ([expected_flag] if expected_flag else [])
+
+
+@pytest.mark.parametrize(
+    ("output", "expected"),
+    [
+        ("Odoo Server 16.0-20250909\n", (16, 0)),
+        ("Odoo Server 20.0-20260926\n", (20, 0)),
+        ("Odoo Server saas~18.2\n", (18, 2)),
+        ("unexpected banner\n", None),
+    ],
+)
+def test_odoo_series_is_parsed_from_the_image_banner(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: str,
+    expected: tuple[int, int] | None,
+) -> None:
+    runtime = DockerComposeRuntimeService(Settings(builds_root=tmp_path))
+    monkeypatch.setattr(runtime, "_execute", lambda build, stage, arguments: (None, output))
+
+    assert runtime._odoo_series(SimpleNamespace()) == expected  # type: ignore[arg-type]
+
+
+def _verification_runtime(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, output: str
+) -> tuple[DockerComposeRuntimeService, list[str]]:
+    runtime = DockerComposeRuntimeService(Settings(builds_root=tmp_path))
+    captured: list[str] = []
+
+    def fake_execute(build, stage: str, arguments: list[str]):
+        captured.extend(arguments)
+        return SimpleNamespace(log_path="install_verify.log"), output
+
+    monkeypatch.setattr(runtime, "_execute", fake_execute)
+    return runtime, captured
+
+
+def test_install_verification_accepts_installed_modules(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runtime, captured = _verification_runtime(
+        tmp_path, monkeypatch, "module_a|installed\nmodule_b|installed\n"
+    )
+    build = SimpleNamespace(database_name="demo", modules=["module_a", "module_b"])
+
+    runtime._verify_installed(build)  # type: ignore[arg-type]
+
+    assert captured[:3] == ["exec", "-T", "db"]
+    assert "'module_a', 'module_b'" in captured[-1]
+
+
+@pytest.mark.parametrize(
+    ("output", "expected"),
+    [
+        ("module_a|installed\nmodule_b|uninstallable\n", "module_b (uninstallable)"),
+        ("module_a|installed\n", "module_b (not found)"),
+    ],
+)
+def test_install_verification_rejects_skipped_modules(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, output: str, expected: str
+) -> None:
+    runtime, _ = _verification_runtime(tmp_path, monkeypatch, output)
+    build = SimpleNamespace(database_name="demo", modules=["module_a", "module_b"])
+
+    with pytest.raises(RuntimeOperationError, match="not installed") as raised:
+        runtime._verify_installed(build)  # type: ignore[arg-type]
+
+    assert expected in str(raised.value)
+    assert raised.value.log_path == "install_verify.log"
+
+
+def test_install_verification_never_interpolates_unsafe_module_names(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runtime, captured = _verification_runtime(tmp_path, monkeypatch, "")
+    build = SimpleNamespace(database_name="demo", modules=["module_a'; DROP TABLE x; --"])
+
+    with pytest.raises(RuntimeOperationError, match="cannot be verified"):
+        runtime._verify_installed(build)  # type: ignore[arg-type]
+
+    assert captured == []

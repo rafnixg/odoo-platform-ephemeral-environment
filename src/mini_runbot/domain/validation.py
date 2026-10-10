@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 SAFE_ALIAS = re.compile(r"^[a-z][a-z0-9_-]{0,62}$")
 SAFE_MODULE = re.compile(r"^[a-z][a-z0-9_]{0,127}$")
+SAFE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$")
 SAFE_REF = re.compile(r"^(?![-/])(?!.*(?:\.\.|//|@\{|\\))[A-Za-z0-9._/-]{1,200}(?<![/.])$")
 
 
@@ -36,6 +37,16 @@ class CreateBuildRequest(BaseModel):
     repositories: list[RequestedRepository] = Field(default_factory=list, max_length=10)
     modules: list[str] = Field(min_length=1, max_length=100)
     ttl_seconds: int = Field(default=14_400, ge=300, le=604_800)
+    odoo_version: str | None = Field(default=None, min_length=1, max_length=32)
+
+    @field_validator("odoo_version")
+    @classmethod
+    def validate_odoo_version(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if not SAFE_VERSION.fullmatch(value):
+            raise ValueError("odoo_version contains unsafe or unsupported characters")
+        return value
 
     @field_validator("repository")
     @classmethod

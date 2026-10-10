@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,18 @@ class RepositoryConfig:
     addons_priority: int = 100
 
 
+SAFE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$")
+DEFAULT_VERSION_NAME = "default"
+REF_SEGMENT_SEPARATORS = ("-", "_", "/")
+
+
+@dataclass(frozen=True, slots=True)
+class OdooVersionConfig:
+    name: str
+    odoo_image: str
+    postgres_image: str
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     database_url: str = "sqlite:///./mini_runbot.db"
@@ -26,6 +39,7 @@ class Settings:
     repositories: dict[str, RepositoryConfig] = field(default_factory=dict)
     odoo_image: str = "odoo:16.0"
     postgres_image: str = "postgres:15"
+    odoo_versions: dict[str, OdooVersionConfig] = field(default_factory=dict)
     port_start: int = 18_000
     port_end: int = 19_999
     command_timeout_seconds: int = 900
@@ -83,6 +97,37 @@ class Settings:
                 )
             targets[repository.target] = alias
 
+        default_odoo_image = os.getenv(
+            "MINI_RUNBOT_ODOO_IMAGE", str(raw.get("odoo_image", "odoo:16.0"))
+        )
+        default_postgres_image = str(raw.get("postgres_image", "postgres:15"))
+        raw_versions = raw.get("odoo_versions", {}) or {}
+        if not isinstance(raw_versions, dict):
+            raise ConfigurationError("odoo_versions must be a mapping")
+        odoo_versions: dict[str, OdooVersionConfig] = {}
+        for name, item in raw_versions.items():
+            name = str(name)
+            if not SAFE_VERSION.fullmatch(name):
+                raise ConfigurationError(f"Invalid odoo_versions entry name: {name}")
+            if name == DEFAULT_VERSION_NAME:
+                raise ConfigurationError(
+                    f"odoo_versions entry name is reserved: {DEFAULT_VERSION_NAME}"
+                )
+            if not isinstance(item, dict) or "odoo_image" not in item:
+                raise ConfigurationError(f"Odoo version {name} must define odoo_image")
+            images = {
+                "odoo_image": item["odoo_image"],
+                "postgres_image": item.get("postgres_image", default_postgres_image),
+            }
+            for key, image in images.items():
+                if not isinstance(image, str) or not image.strip():
+                    raise ConfigurationError(f"Odoo version {name} has an empty {key}")
+            odoo_versions[name] = OdooVersionConfig(
+                name=name,
+                odoo_image=images["odoo_image"].strip(),
+                postgres_image=images["postgres_image"].strip(),
+            )
+
         cleanup_interval_seconds = int(
             os.getenv(
                 "MINI_RUNBOT_CLEANUP_INTERVAL_SECONDS",
@@ -104,10 +149,9 @@ class Settings:
                 os.getenv("MINI_RUNBOT_BUILDS_ROOT", str(raw.get("builds_root", "./builds")))
             ),
             repositories=repositories,
-            odoo_image=os.getenv(
-                "MINI_RUNBOT_ODOO_IMAGE", str(raw.get("odoo_image", "odoo:16.0"))
-            ),
-            postgres_image=str(raw.get("postgres_image", "postgres:15")),
+            odoo_image=default_odoo_image,
+            postgres_image=default_postgres_image,
+            odoo_versions=odoo_versions,
             port_start=int(raw.get("port_start", 18_000)),
             port_end=int(raw.get("port_end", 19_999)),
             command_timeout_seconds=int(raw.get("command_timeout_seconds", 900)),
@@ -127,3 +171,36 @@ class Settings:
         if not repository.allow_request_ref and requested_ref != repository.default_ref:
             raise ConfigurationError(f"Repository {alias} does not allow request refs")
         return repository
+
+    def resolve_odoo_version(
+        self, requested_version: str | None, requested_ref: str
+    ) -> OdooVersionConfig:
+        """Pick the image pair for a build.
+
+        Explicit request wins; otherwise a profile whose name matches the Git ref
+        is used, exactly or as its leading segment (17.0-fix-payment -> 17.0);
+        otherwise the global odoo_image/postgres_image act as default.
+        """
+        if requested_version is not None:
+            try:
+                return self.odoo_versions[requested_version]
+            except KeyError as exc:
+                raise ConfigurationError(
+                    f"Odoo version is not configured: {requested_version}"
+                ) from exc
+        inferred = self.odoo_versions.get(requested_ref)
+        if inferred is not None:
+            return inferred
+        prefixed = [
+            name
+            for name in self.odoo_versions
+            if requested_ref.startswith(name)
+            and requested_ref[len(name) : len(name) + 1] in REF_SEGMENT_SEPARATORS
+        ]
+        if prefixed:
+            return self.odoo_versions[max(prefixed, key=len)]
+        return OdooVersionConfig(
+            name=DEFAULT_VERSION_NAME,
+            odoo_image=self.odoo_image,
+            postgres_image=self.postgres_image,
+        )

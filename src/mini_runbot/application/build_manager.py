@@ -65,6 +65,16 @@ class BuildManager:
                     addons_priority=priority,
                 )
             )
+        odoo_version = odoo_image = postgres_image = None
+        if self.settings is not None:
+            resolved_version = self.settings.resolve_odoo_version(
+                request.odoo_version, selected_repositories[0].ref
+            )
+            odoo_version = resolved_version.name
+            odoo_image = resolved_version.odoo_image
+            postgres_image = resolved_version.postgres_image
+        elif request.odoo_version is not None:
+            raise ConfigurationError("odoo_version requires configured settings")
         terminal = {BuildStatus.DESTROYED}
         used_ports = {
             item.host_port
@@ -87,6 +97,9 @@ class BuildManager:
             database_name=build_id.replace("-", "_"),
             host_port=host_port,
             preview_url=f"http://127.0.0.1:{host_port}" if host_port else None,
+            odoo_version=odoo_version,
+            odoo_image=odoo_image,
+            postgres_image=postgres_image,
         )
         try:
             self.repository.add(build)

@@ -1,4 +1,4 @@
-# Mini-Runbot for Odoo 16 (PoC)
+# Mini-Runbot for Odoo (PoC)
 
 [![CI](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/ci.yml/badge.svg)](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/ci.yml)
 [![Documentation](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/docs.yml/badge.svg)](https://github.com/rafnixg/odoo-platform-ephemeral-environment/actions/workflows/docs.yml)
@@ -6,8 +6,9 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rafnixg/odoo-platform-ephemeral-environment)
 
 Mini-Runbot turns configured Git revisions and Odoo module lists into isolated, tested, temporary
-Odoo 16 environments. It is a local, single-host proof of concept for trusted repositories, not a
-security boundary for hostile code.
+Odoo environments. Each build can run on its own Odoo series, verified from 16.0 to 20.0. It is a
+local, single-host proof of concept for trusted repositories, not a security boundary for hostile
+code.
 
 ## Documentation
 
@@ -92,6 +93,25 @@ mini-runbot build create --repo custom --ref 16.0 --modules module_a,module_b --
 
 Repository inputs are configured aliases, never arbitrary URLs or filesystem paths supplied by a
 client.
+
+## Multiple Odoo versions
+
+Declare one image profile per series under `odoo_versions` and each build picks its own:
+
+```yaml
+odoo_versions:
+  "17.0": {odoo_image: odoo:17.0, postgres_image: postgres:15}
+  "19.0": {odoo_image: odoo:19.0, postgres_image: postgres:16}
+  "20.0": {odoo_image: odoo:20.0, postgres_image: postgres:16}
+```
+
+```console
+mini-runbot build create --repo custom --ref feature/x --modules module_a --odoo-version 19.0 --run
+```
+
+Without `--odoo-version`, the profile is inferred from the Git reference (`17.0`,
+`17.0-fix-payment`); otherwise the global `odoo_image` applies. The chosen images are stored with
+the build. See the [configuration guide](gh-docs/en/configuration.md#odoo-versions).
 
 ## Local checks
 

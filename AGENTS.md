@@ -6,7 +6,8 @@ It applies to the entire repository unless a more specific `AGENTS.md` exists in
 ## Project purpose
 
 Mini-Runbot is a local, single-host proof of concept for turning configured Git revisions and
-Odoo module lists into isolated, tested, temporary Odoo 16 environments. It is intended for
+Odoo module lists into isolated, tested, temporary Odoo environments, one Odoo series per build
+(16.0 to 20.0). It is intended for
 trusted repositories and is not a security boundary for hostile code.
 
 Keep changes aligned with the current roadmap in `gh-docs/es/roadmap.md`. Do not introduce
@@ -73,6 +74,8 @@ the domain must not depend on FastAPI, Typer, SQLAlchemy, Git, or Docker Compose
 - Keep PostgreSQL and Odoo filestore volumes isolated per Compose project.
 - Load Odoo demo data by default because Odoo/OCA tests can depend on demo XML records. Respect the
   `load_demo_data` setting for production-like previews.
+- Keep the runtime series-agnostic: do not assume one Odoo version in Compose rendering, command
+  options, or fixtures. When an option differs between series, decide from the build image.
 - Update `README.md`, `config.example.yaml`, ADRs, or the roadmap when a change affects documented
   behavior or configuration.
 - Do not add credentials, tokens, SSH keys, or repository secrets to source, logs, fixtures, or

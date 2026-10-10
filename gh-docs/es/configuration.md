@@ -39,8 +39,9 @@ repositories:
 | --- | --- | --- |
 | `database_url` | `sqlite:///./mini_runbot.db` | Base de auditoría y leases. |
 | `builds_root` | `./builds` | Workspaces y logs por build. |
-| `odoo_image` | `odoo:16.0` | Imagen de Odoo. |
-| `postgres_image` | `postgres:15` | Imagen interna de PostgreSQL. |
+| `odoo_image` | `odoo:16.0` | Imagen de Odoo cuando no aplica ningún perfil. |
+| `postgres_image` | `postgres:15` | Imagen interna de PostgreSQL cuando no aplica ningún perfil. |
+| `odoo_versions` | vacío | Perfiles de imagen por build; vea [Versiones de Odoo](#versiones-de-odoo). |
 | `port_start`, `port_end` | `18000`, `19999` | Rango loopback para previews. |
 | `command_timeout_seconds` | `900` | Límite para comandos externos. |
 | `health_timeout_seconds` | `120` | Límite del healthcheck HTTP. |
@@ -49,6 +50,41 @@ repositories:
 | `destroyed_retention_seconds` | `0` | Retención antes de purgar; cero conserva indefinidamente. |
 | `load_demo_data` | `true` | Carga datos demo requeridos por muchas pruebas Odoo/OCA. |
 | `retain_failed_runtime` | `false` | Conserva contenedores fallidos para diagnóstico. |
+
+## Versiones de Odoo
+
+`odoo_versions` asocia un nombre de perfil con las imágenes sobre las que corre un build.
+`postgres_image` es opcional y hereda el valor global.
+
+```yaml
+odoo_versions:
+  "16.0": {odoo_image: odoo:16.0, postgres_image: postgres:15}
+  "17.0": {odoo_image: odoo:17.0, postgres_image: postgres:15}
+  "18.0": {odoo_image: odoo:18.0, postgres_image: postgres:16}
+  "19.0": {odoo_image: odoo:19.0, postgres_image: postgres:16}
+  "20.0": {odoo_image: odoo:20.0, postgres_image: postgres:16}
+```
+
+Un build resuelve su perfil en este orden:
+
+1. El perfil solicitado: `--odoo-version`, el selector del dashboard u `odoo_version` en la API.
+   Un nombre desconocido se rechaza.
+2. La referencia Git del primer repositorio, cuando es igual al nombre de un perfil o empieza por
+   él seguido de `-`, `_` o `/` (`17.0`, `17.0-fix-payment`). Gana el nombre más largo.
+3. Los valores globales `odoo_image` y `postgres_image`, informados como `default`.
+
+Las imágenes resueltas se guardan con el build, de modo que un cambio posterior de configuración
+no altera los builds existentes. Los nombres de perfil admiten letras, dígitos, `.`, `_` y `-`;
+`default` está reservado.
+
+El runtime se adapta a la serie de la imagen: los datos demo se solicitan de forma explícita
+desde 19.0, donde ya no se cargan por defecto, y el servidor del preview escucha siempre en todas
+las interfaces del contenedor, algo que 20.0 ya no hace por sí solo. La etapa `install` falla
+cuando Odoo deja sin instalar un módulo solicitado, por ejemplo porque la versión de su manifest
+apunta a otra serie.
+
+La plantilla de Compose monta el volumen de la base en `/var/lib/postgresql/data`; use imágenes
+de PostgreSQL que conserven sus datos ahí (hasta `postgres:17`).
 
 ## Repositorios
 

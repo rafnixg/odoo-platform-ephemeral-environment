@@ -49,6 +49,9 @@ class BuildRow(Base):
     failure_message: Mapped[str | None] = mapped_column(String(1000))
     stages: Mapped[list[dict[str, object]]] = mapped_column(JSON, nullable=False, default=list)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    odoo_version: Mapped[str | None] = mapped_column(String(32))
+    odoo_image: Mapped[str | None] = mapped_column(String(255))
+    postgres_image: Mapped[str | None] = mapped_column(String(255))
 
 
 class PortLeaseRow(Base):
@@ -72,6 +75,17 @@ class SqliteBuildRepository:
                 connection.execute(
                     text("ALTER TABLE builds ADD COLUMN stages JSON NOT NULL DEFAULT '[]'")
                 )
+        optional_columns = {
+            "odoo_version": "VARCHAR(32)",
+            "odoo_image": "VARCHAR(255)",
+            "postgres_image": "VARCHAR(255)",
+        }
+        for column, column_type in optional_columns.items():
+            if column not in columns:
+                with self.engine.begin() as connection:
+                    connection.execute(
+                        text(f"ALTER TABLE builds ADD COLUMN {column} {column_type}")
+                    )
         self._seed_port_leases()
 
     def add(self, build: Build) -> None:
@@ -197,6 +211,9 @@ class SqliteBuildRepository:
             "failure_stage": build.failure_stage,
             "failure_message": build.failure_message,
             "stages": [self._stage_dict(stage) for stage in build.stages],
+            "odoo_version": build.odoo_version,
+            "odoo_image": build.odoo_image,
+            "postgres_image": build.postgres_image,
         }
 
     @staticmethod
@@ -258,6 +275,9 @@ class SqliteBuildRepository:
                 for item in row.stages
             ],
             version=row.version,
+            odoo_version=row.odoo_version,
+            odoo_image=row.odoo_image,
+            postgres_image=row.postgres_image,
         )
 
 
