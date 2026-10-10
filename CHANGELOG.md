@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-10
 
 - Add `odoo_versions` image profiles so each build runs on its own Odoo series, selected with
   `--odoo-version`, the dashboard, the API, or the Git reference name.
@@ -11,6 +11,7 @@
   a successful build.
 - Make the demo addon manifest version valid on every supported series.
 - Fix `mini-runbot serve` exiting on Windows when its output is redirected.
+- Keep CI aligned with the error and log evidence returned for unrecognized Odoo image banners.
 
 ## 0.2.1 — 2026-09-20
 
