@@ -272,8 +272,8 @@ class DockerComposeRuntimeService:
             if result.returncode != 0:
                 raise RuntimeOperationError(f"Compose destruction failed; see {log_path}")
 
-    def _odoo_series(self, build: Build) -> tuple[int, int] | None:
-        """Ask the build image which Odoo series it ships; None when it cannot be read."""
+    def _odoo_series(self, build: Build) -> tuple[int, int]:
+        """Ask the build image which Odoo series it ships; fail when it cannot be read."""
         result, output = self._execute(
             build,
             "odoo_version",

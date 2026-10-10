@@ -169,19 +169,39 @@ def test_install_demo_data_flag_follows_the_odoo_series(
         ("Odoo Server 16.0-20250909\n", (16, 0)),
         ("Odoo Server 20.0-20260926\n", (20, 0)),
         ("Odoo Server saas~18.2\n", (18, 2)),
-        ("unexpected banner\n", None),
     ],
 )
 def test_odoo_series_is_parsed_from_the_image_banner(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     output: str,
-    expected: tuple[int, int] | None,
+    expected: tuple[int, int],
 ) -> None:
     runtime = DockerComposeRuntimeService(Settings(builds_root=tmp_path))
     monkeypatch.setattr(runtime, "_execute", lambda build, stage, arguments: (None, output))
 
     assert runtime._odoo_series(SimpleNamespace()) == expected  # type: ignore[arg-type]
+
+
+def test_odoo_series_rejects_unrecognized_banner_with_log_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runtime = DockerComposeRuntimeService(Settings(builds_root=tmp_path))
+    monkeypatch.setattr(
+        runtime,
+        "_execute",
+        lambda build, stage, arguments: (
+            SimpleNamespace(log_path="odoo_version.log"),
+            "unexpected banner\n",
+        ),
+    )
+
+    with pytest.raises(
+        RuntimeOperationError, match="Could not determine the Odoo series"
+    ) as raised:
+        runtime._odoo_series(SimpleNamespace())  # type: ignore[arg-type]
+
+    assert raised.value.log_path == "odoo_version.log"
 
 
 def _verification_runtime(
